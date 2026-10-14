@@ -1,23 +1,307 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
 
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+/* Official MercaAndes brand colors */
+:root {
+  --merca-navy: #15213B;
+  --merca-copper: #B9863E;
+  --merca-slate: #5B6472;
+  --merca-light: #F5F6F8;
+  --merca-cream: #F3E9D9;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
+/* Main hero section */
+.hero {
+  background: linear-gradient(
+    125deg,
+    var(--merca-navy) 0%,
+    #202F4C 100%
+  );
+  color: #FFFFFF;
+  padding: 5rem max(6%, calc((100% - 1200px) / 2));
+}
+
+.heroContent {
+  max-width: 760px;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: #D8B477;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+}
+
+/* Hero title and description */
+.hero h1 {
+  color: #FFFFFF;
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin-bottom: 1.5rem;
+}
+
+.heroDescription {
+  color: #E0E5ED;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  max-width: 660px;
+}
+
+/* Hero action buttons */
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border-radius: 8px;
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.primaryButton {
+  background: var(--merca-copper);
+  color: #FFFFFF;
+}
+
+.primaryButton:hover {
+  background: #A87530;
+  color: #FFFFFF;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.secondaryButton {
+  border: 1px solid #B9863E;
+  color: #FFFFFF;
+}
+
+.secondaryButton:hover {
+  background: rgb(185 134 62 / 15%);
+  color: #FFFFFF;
+  text-decoration: none;
+}
+
+/* Project scope and country tags */
+.countryPanel {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgb(255 255 255 / 20%);
+}
+
+.panelLabel {
+  color: #D8B477;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.countryPanel h2 {
+  color: #FFFFFF;
+  font-size: 1.4rem;
+  margin: 0.7rem 0 1.2rem;
+}
+
+.countryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.countryTag {
+  border: 1px solid #68738A;
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  color: #FFFFFF;
+  font-size: 0.85rem;
+}
+
+/* Documentation section layout */
+.documentation {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+}
+
+.sectionHeading {
+  max-width: 680px;
+  margin-bottom: 2.5rem;
+}
+
+.sectionHeading .eyebrow {
+  color: var(--merca-copper);
+}
+
+.sectionHeading h2 {
+  color: var(--merca-navy);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  margin-bottom: 0.8rem;
+}
+
+.sectionHeading p {
+  color: var(--merca-slate);
+  line-height: 1.7;
+}
+
+/* Documentation cards grid */
+.sectionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.sectionCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 245px;
+  padding: 1.5rem;
+  border: 1px solid #E0E3E8;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: var(--merca-navy);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sectionCard:hover {
+  border-color: var(--merca-copper);
+  color: var(--merca-navy);
+  text-decoration: none;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgb(21 33 59 / 8%);
+}
+
+/* Card icon containers */
+.sectionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 1.25rem;
+  border-radius: 10px;
+  background: var(--merca-cream);
+  color: var(--merca-navy);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* Card titles and descriptions */
+.sectionCard h3 {
+  color: var(--merca-navy);
+  font-size: 1.1rem;
+  margin-bottom: 0.65rem;
+}
+
+.sectionCard p {
+  color: var(--merca-slate);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+/* Card navigation link */
+.cardLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 0.8rem;
+  color: #946322;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Bottom call-to-action banner */
+.bottomBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto 4rem;
+  padding: 2rem;
+  border: 1px solid #E0E3E8;
+  border-radius: 12px;
+  background: var(--merca-light);
+}
+
+.bottomBanner h2 {
+  color: var(--merca-navy);
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.bottomBanner p {
+  color: var(--merca-slate);
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+
+/* Tablet layout */
+@media (max-width: 900px) {
+  .hero {
+    padding: 4rem 2rem;
+  }
+
+  .sectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bottomBanner {
+    margin-right: 2rem;
+    margin-left: 2rem;
   }
 }
 
-.buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Mobile layout */
+@media (max-width: 600px) {
+  .hero {
+    padding: 3.5rem 1.25rem;
+  }
+
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .heroDescription {
+    font-size: 1rem;
+  }
+
+  .documentation {
+    padding: 3rem 1.25rem;
+  }
+
+  .sectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionCard {
+    min-height: 220px;
+  }
+
+  .bottomBanner {
+    align-items: flex-start;
+    flex-direction: column;
+    margin: 0 1.25rem 3rem;
+    padding: 1.5rem;
+  }
 }
+
