@@ -1,4 +1,3 @@
-
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import styles from './index.module.css';
@@ -18,7 +17,7 @@ const sections = [
     description:
       'Requirements, environment setup, and instructions to run the project.',
     icon: '⚙',
-    to: '/docs/deployment/installation',
+    to: '/docs/installation-deployment/prerequisites',
   },
   {
     title: 'System Architecture',
@@ -32,7 +31,7 @@ const sections = [
     description:
       'Explore database organization, country schemas, and relationships.',
     icon: '▤',
-    to: '/docs/data/data-model',
+    to: '/docs/database/entity-relationship-model',
   },
   {
     title: 'Data Processing',
@@ -86,7 +85,7 @@ function HomePage() {
             <div className={styles.heroActions}>
               <Link
                 className={styles.primaryButton}
-                to="/docs/deployment/installation"
+                to="/docs/installation-deployment/prerequisites"
               >
                 Get started <span aria-hidden="true">→</span>
               </Link>
@@ -167,7 +166,7 @@ function HomePage() {
 
           <Link
             className={styles.primaryButton}
-            to="/docs/deployment/installation"
+            to="/docs/installation-deployment/prerequisites"
           >
             Installation guide →
           </Link>
