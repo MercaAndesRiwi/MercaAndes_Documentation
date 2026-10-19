@@ -141,4 +141,4 @@ This page describes the responsibilities of components in the target architectur
 
 The implementation status should be maintained alongside the development and deployment records.
 
-For infrastructure details, see [Infrastructure and Deployment](docs/02-architecture/03-infrastructure.md). For the rationale behind the architecture, see [Technical Decisions](docs/02-architecture/04-technical-decisions.md).
+For infrastructure details, see [Infrastructure and Deployment](docs/03-architecture/03-infrastructure.md). For the rationale behind the architecture, see [Technical Decisions](docs/03-architecture/04-technical-decisions.md).

@@ -1,4 +1,3 @@
-
 # Infrastructure and Deployment Architecture
 
 ## 1. Overview
@@ -135,6 +134,6 @@ Credentials and secrets must be stored securely and must not be committed to sou
 
 ## 10. Related Documentation
 
-- [Architecture Overview](docs/02-architecture/01-overview.md)
-- [Architecture Components](docs/02-architecture/02-components.md)
-- [Technical Decisions](docs/02-architecture/04-technical-decisions.md)
+- [Architecture Overview](docs/03-architecture/01-overview.md)
+- [Architecture Components](docs/03-architecture/02-components.md)
+- [Technical Decisions](docs/03-architecture/04-technical-decisions.md)

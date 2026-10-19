@@ -143,4 +143,4 @@ The model also defines `holiday_type_id` as the identifier for `Holiday_Type`, a
 
 ## 9. Related Documentation
 
-- [Country Schemas](docs/03-database/01-entity-relationship-model.md)
+- [Country Schemas](docs/04-database/02-country-schemas.md)
