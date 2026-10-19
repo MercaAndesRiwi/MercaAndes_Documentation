@@ -38,21 +38,21 @@ const sections = [
     description:
       'Learn about data sources, simulators, and processing workflows.',
     icon: '⇄',
-    to: '/docs/pipelines/processing',
+    to: '/docs/installation-deployment/run-data-processing',
   },
   {
     title: 'Services & APIs',
     description:
       'Discover available services, endpoints, and integration details.',
     icon: '</>',
-    to: '/docs/apis/overview',
+    to: '/docs/architecture/components',
   },
   {
     title: 'Development & Testing',
     description:
       'Review development guidelines and testing procedures.',
     icon: '✓',
-    to: '/docs/development/testing',
+    to: '/docs/installation-deployment/validation-and-tests',
   },
 ];
 
