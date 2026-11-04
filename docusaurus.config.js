@@ -11,7 +11,8 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'MercaAndes',
-  favicon: 'img/MercaAndes_montanas.png',
+  tagline: 'Connecting data. Empowering decisions.',
+  favicon: 'img/favicon.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -31,12 +32,22 @@ const config = {
 
   onBrokenLinks: 'throw',
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
+  // English is the original language. Spanish is available as a second locale.
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ['en', 'es'],
+    localeConfigs: {
+      en: {
+        label: 'English',
+        direction: 'ltr',
+        htmlLang: 'en',
+      },
+      es: {
+        label: 'Español',
+        direction: 'ltr',
+        htmlLang: 'es',
+      },
+    },
   },
 
   presets: [
@@ -48,8 +59,7 @@ const config = {
           sidebarPath: './sidebars.js',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/MercaAndesRiwi',
+          editUrl: 'https://github.com/MercaAndesRiwi',
         },
         blog: false,
         theme: {
@@ -62,27 +72,32 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'img/MercaAndes_nombre.png',
       colorMode: {
+        defaultMode: 'light',
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'Documentation',
+        title: 'MercaAndes',
         logo: {
           alt: 'MercaAndes Logo',
-          src: 'img/MercaAndes_nombre.png',
+          src: 'img/logo-light.svg',
+          srcDark: 'img/logo-dark.svg',
         },
         items: [
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Tutorial',
+            label: 'Documentation',
           },
           {
             href: 'https://github.com/MercaAndesRiwi',
             label: 'GitHub',
+            position: 'right',
+          },
+          {
+            type: 'localeDropdown',
             position: 'right',
           },
         ],
@@ -91,18 +106,29 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Documentation',
             items: [
               {
-                label: 'Tutorial',
+                label: 'Introduction',
                 to: '/docs/intro',
+              },
+              {
+                label: 'Installation and Deployment',
+                to: '/docs/installation-deployment/prerequisites',
+              },
+              {
+                label: 'Architecture',
+                to: '/docs/architecture/overview',
               },
             ],
           },
           {
-            title: 'More',
+            title: 'Project',
             items: [
-          
+              {
+                label: 'Data Model and Databases',
+                to: '/docs/database/entity-relationship-model',
+              },
               {
                 label: 'GitHub',
                 href: 'https://github.com/MercaAndesRiwi',
@@ -110,7 +136,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} MercaAndes. Built with Docusaurus.`,
       },
       prism: {
         theme: prismThemes.github,

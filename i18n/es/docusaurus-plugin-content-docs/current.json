@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "Actual",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Installation and Deployment": {
+    "message": "Instalación y despliegue",
+    "description": "The label for category 'Installation and Deployment' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Architecture": {
+    "message": "Arquitectura",
+    "description": "The label for category 'Architecture' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Data Model and Databases": {
+    "message": "Modelo de datos y bases de datos",
+    "description": "The label for category 'Data Model and Databases' in sidebar 'tutorialSidebar'"
+  }
+}
