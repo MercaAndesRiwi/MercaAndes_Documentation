@@ -1,30 +1,538 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * MercaAndes documentation theme.
+ * This file overrides Infima (Docusaurus' CSS framework) globally.
  */
 
-/* You can override the default Infima variables here. */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ---------------------------------------------------------------
+   Brand palette and shared tokens
+   --------------------------------------------------------------- */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  /* Official brand colors */
+  --ma-navy: #15213b;
+  --ma-navy-deep: #081226;
+  --ma-copper: #c98a3c;
+  --ma-copper-light: #e0a458;
+  --ma-slate: #5b6472;
+  --ma-cream: #f3e9d9;
+  --ma-blue: #4f7cff;
+  --ma-blue-soft: rgba(79, 124, 255, 0.16);
+
+  /* Light theme surfaces */
+  --ma-surface: #ffffff;
+  --ma-surface-soft: #f6f7fb;
+  --ma-border: #e3e7ef;
+  --ma-border-strong: #cbd2df;
+  --ma-copper-soft: rgba(201, 138, 60, 0.12);
+  --ma-shadow-sm: 0 4px 16px rgba(21, 33, 59, 0.06);
+  --ma-shadow-md: 0 14px 40px rgba(21, 33, 59, 0.1);
+  --ma-code-bg: #f2f4f8;
+  --ma-table-head: #f1f3f8;
+  --ma-table-stripe: #fafbfd;
+
+  /* Infima primary (copper) */
+  --ifm-color-primary: #a9651f;
+  --ifm-color-primary-dark: #985b1c;
+  --ifm-color-primary-darker: #8f561a;
+  --ifm-color-primary-darkest: #764715;
+  --ifm-color-primary-light: #ba6f22;
+  --ifm-color-primary-lighter: #c37525;
+  --ifm-color-primary-lightest: #d48a3d;
+
+  --ifm-background-color: var(--ma-surface-soft);
+  --ifm-background-surface-color: var(--ma-surface);
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.86);
+  --ifm-navbar-shadow: none;
+  --ifm-footer-background-color: transparent;
+  --ifm-color-content: #2b3444;
+  --ifm-color-content-secondary: #5b6472;
+  --ifm-heading-color: var(--ma-navy);
+  --ifm-font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-heading-font-weight: 800;
+  --ifm-code-font-size: 92%;
+  --ifm-code-background: var(--ma-code-bg);
+  --ifm-code-color: #8a4c12;
+  --ifm-pre-background: #f6f8fa;
+  --ifm-toc-border-color: var(--ma-border);
+  --ifm-table-border-color: var(--ma-border);
+  --ifm-hr-border-color: var(--ma-border);
+  --ifm-blockquote-border-color: var(--ma-copper);
+  --ifm-blockquote-color: var(--ma-slate);
+  --ifm-global-radius: 10px;
+  --docusaurus-highlighted-code-line-bg: rgba(201, 138, 60, 0.14);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  /* Dark theme surfaces: saturated navy instead of flat black. */
+  --ma-surface: #122142;
+  --ma-surface-soft: #0a1530;
+  --ma-border: rgba(125, 155, 255, 0.16);
+  --ma-border-strong: rgba(125, 155, 255, 0.3);
+  --ma-copper-soft: rgba(255, 184, 92, 0.16);
+  --ma-shadow-sm: 0 4px 18px rgba(0, 0, 0, 0.32);
+  --ma-shadow-md: 0 18px 48px rgba(0, 0, 0, 0.45);
+  --ma-code-bg: #0f1d3d;
+  --ma-table-head: #14244a;
+  --ma-table-stripe: #0d1936;
+
+  /* Brighter copper for readable, vivid accents on dark backgrounds. */
+  --ifm-color-primary: #ffb85c;
+  --ifm-color-primary-dark: #f7a93f;
+  --ifm-color-primary-darker: #ef9f2f;
+  --ifm-color-primary-darkest: #d98a1f;
+  --ifm-color-primary-light: #ffc77d;
+  --ifm-color-primary-lighter: #ffd08f;
+  --ifm-color-primary-lightest: #ffe2b8;
+
+  --ifm-background-color: var(--ma-surface-soft);
+  --ifm-background-surface-color: var(--ma-surface);
+  --ifm-navbar-background-color: rgba(8, 18, 44, 0.78);
+  --ifm-color-content: #dbe4f6;
+  --ifm-color-content-secondary: #a6b6d6;
+  --ifm-heading-color: #f7f9ff;
+  --ifm-code-color: #ffd79a;
+  --ifm-pre-background: #0a1530;
+  --ifm-blockquote-color: #c9d5ea;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 184, 92, 0.18);
+}
+
+/* ---------------------------------------------------------------
+   Base layout
+   --------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--ifm-background-color);
+  color: var(--ifm-color-content);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Soft color washes keep the dark theme from feeling flat. */
+[data-theme='dark'] body {
+  background-image:
+    radial-gradient(1100px 600px at 100% -10%, rgba(79, 124, 255, 0.14), transparent 60%),
+    radial-gradient(900px 520px at 0% 0%, rgba(255, 184, 92, 0.08), transparent 58%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(224, 164, 88, 0.35);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ifm-background-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ma-border-strong);
+  border-radius: 999px;
+}
+
+/* ---------------------------------------------------------------
+   Navbar
+   --------------------------------------------------------------- */
+.navbar {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--ma-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme='dark'] .navbar {
+  border-bottom-color: rgba(125, 155, 255, 0.2);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.32);
+}
+
+.navbar__brand {
+  gap: 0.55rem;
+}
+
+.navbar__logo {
+  height: 30px;
+  width: 30px;
+}
+
+.navbar__title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.navbar__link {
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.navbar__link:hover,
+.navbar__link--active {
+  background: var(--ma-copper-soft);
+  color: var(--ifm-color-primary);
+}
+
+.navbar__toggle {
+  color: var(--ifm-color-content);
+}
+
+/* Mobile navbar drawer */
+.navbar-sidebar,
+.navbar-sidebar__item,
+.navbar-sidebar__brand {
+  background: var(--ifm-background-color);
+}
+
+.navbar-sidebar {
+  border-right: 1px solid var(--ma-border);
+}
+
+/* Dropdown menus (locale selector, etc.) */
+.dropdown__menu {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  box-shadow: var(--ma-shadow-md);
+  padding: 0.4rem;
+}
+
+.dropdown__link {
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.dropdown__link:hover,
+.dropdown__link--active {
+  background: var(--ma-copper-soft);
+  color: var(--ifm-color-primary);
+}
+
+/* ---------------------------------------------------------------
+   Documentation sidebar
+   --------------------------------------------------------------- */
+.theme-doc-sidebar-container {
+  background: var(--ifm-background-color);
+  border-right: 1px solid var(--ma-border) !important;
+}
+
+.menu {
+  padding: 0.9rem 0.7rem;
+  font-weight: 500;
+}
+
+.menu__list .menu__list {
+  border-left: 1px solid var(--ma-border);
+  margin-left: 0.4rem;
+  padding-left: 0.35rem;
+}
+
+.menu__link {
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  padding: 0.45rem 0.6rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.menu__link:hover {
+  background: var(--ma-copper-soft);
+  color: var(--ifm-color-primary);
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  background: var(--ma-copper-soft);
+  color: var(--ifm-color-primary);
+  font-weight: 700;
+}
+
+.menu__list-item-collapsible:hover {
+  background: transparent;
+}
+
+.menu__list-item-collapsible .menu__link--active {
+  color: var(--ifm-color-primary);
+}
+
+/* Collapse button at the bottom of the sidebar */
+.theme-doc-sidebar-container button[class*='collapseSidebarButton'] {
+  border-top: 1px solid var(--ma-border);
+  background: transparent;
+}
+
+/* ---------------------------------------------------------------
+   Documentation content
+   --------------------------------------------------------------- */
+.theme-doc-markdown {
+  line-height: 1.75;
+}
+
+.theme-doc-markdown > h1:first-child {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  letter-spacing: -0.035em;
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  position: relative;
+}
+
+.theme-doc-markdown > h1:first-child::after {
+  background: linear-gradient(90deg, var(--ma-copper), var(--ma-copper-light));
+  border-radius: 999px;
+  bottom: 0;
+  content: '';
+  display: block;
+  height: 4px;
+  position: absolute;
+  width: 64px;
+}
+
+.theme-doc-markdown h2 {
+  border-bottom: 1px solid var(--ma-border);
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  margin-top: 2.6rem;
+  padding-bottom: 0.45rem;
+}
+
+.theme-doc-markdown h3 {
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  margin-top: 2rem;
+}
+
+.theme-doc-markdown a {
+  font-weight: 600;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.theme-doc-markdown img {
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  box-shadow: var(--ma-shadow-sm);
+}
+
+.theme-doc-markdown blockquote {
+  background: var(--ma-copper-soft);
+  border-left: 4px solid var(--ma-copper);
+  border-radius: 0 12px 12px 0;
+  padding: 1rem 1.2rem;
+}
+
+.theme-doc-markdown hr {
+  border-color: var(--ma-border);
+}
+
+/* Tables */
+.theme-doc-markdown table {
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  border-spacing: 0;
+  border-collapse: separate;
+  display: table;
+  overflow: hidden;
+  width: 100%;
+}
+
+.theme-doc-markdown thead,
+.theme-doc-markdown thead tr {
+  background: var(--ma-table-head);
+}
+
+.theme-doc-markdown th {
+  font-weight: 700;
+}
+
+.theme-doc-markdown th,
+.theme-doc-markdown td {
+  border-color: var(--ma-border) !important;
+}
+
+.theme-doc-markdown tbody tr:nth-child(2n) {
+  background: var(--ma-table-stripe);
+}
+
+/* Inline code */
+.theme-doc-markdown code,
+.theme-doc-markdown a code {
+  background: var(--ma-code-bg);
+  border: 1px solid var(--ma-border);
+  border-radius: 6px;
+  color: var(--ifm-code-color);
+  padding: 0.12rem 0.35rem;
+}
+
+/* Code blocks */
+.theme-code-block {
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  box-shadow: var(--ma-shadow-sm);
+  overflow: hidden;
+}
+
+.theme-code-block pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+[data-theme='dark'] .theme-code-block pre {
+  background: #0d1626 !important;
+}
+
+/* Admonitions */
+.alert {
+  border-radius: 12px;
+  border-width: 1px;
+}
+
+[data-theme='dark'] .alert--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ma-border);
+}
+
+/* Breadcrumbs */
+.breadcrumbs__link {
+  border-radius: 6px;
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: var(--ma-copper-soft);
+  color: var(--ifm-color-primary);
+}
+
+/* Table of contents */
+.table-of-contents {
+  font-size: 0.85rem;
+}
+
+.table-of-contents__link {
+  color: var(--ifm-color-content-secondary);
+  transition: color 0.2s ease;
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* Previous / next page cards */
+.pagination-nav__link {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ma-border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: var(--ma-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.pagination-nav__sublabel {
+  color: var(--ifm-color-content-secondary);
+}
+
+/* Edit this page */
+.theme-edit-this-page {
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.85rem;
+}
+
+.theme-edit-this-page:hover {
+  color: var(--ifm-color-primary);
+}
+
+/* ---------------------------------------------------------------
+   Footer
+   --------------------------------------------------------------- */
+.footer {
+  background:
+    radial-gradient(700px 260px at 90% 0%, rgba(255, 184, 92, 0.16), transparent 65%),
+    linear-gradient(160deg, #081226 0%, #10224a 58%, #1a3166 100%);
+  border-top: 1px solid rgba(125, 155, 255, 0.18);
+  color: #d3dcef;
+}
+
+.footer__title {
+  color: var(--ma-copper-light);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.footer__link-item {
+  color: #c9d3e4;
+  font-size: 0.92rem;
+  transition: color 0.2s ease;
+}
+
+.footer__link-item:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footer__copyright {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #93a1b8;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+/* ---------------------------------------------------------------
+   Small screens
+   --------------------------------------------------------------- */
+@media (max-width: 996px) {
+  .navbar__link {
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .menu {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 700px) {
+  /* Wide tables scroll inside the content instead of breaking the page. */
+  .theme-doc-markdown table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .theme-doc-markdown table thead,
+  .theme-doc-markdown table tbody {
+    width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .theme-doc-markdown > h1:first-child {
+    font-size: 1.85rem;
+  }
+
+  .theme-doc-markdown h2 {
+    font-size: 1.35rem;
+  }
 }

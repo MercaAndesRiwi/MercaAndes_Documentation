@@ -1,43 +1,43 @@
-# Website
+# MercaAndes Documentation
 
-* [ ] 
+Sitio de documentación de MercaAndes (Docusaurus). Incluye tema claro/oscuro e
+interfaz en inglés y español.
 
-## Installation
+## Instalación
 
 ```bash
 npm install
 ```
 
-**Note**: feel free to use the package manager of your choice.
-
-## Local Development
+## Desarrollo
 
 ```bash
 npm run start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+Abre el sitio en inglés con recarga en vivo.
 
-## Build
+> Docusaurus solo levanta un idioma en el servidor de desarrollo. Si abres
+> `/es/` con `npm run start`, verás "Page Not Found". Para editar el español:
+
+```bash
+npm run start:es
+```
+
+## Ver ambos idiomas
+
+```bash
+npm run preview
+```
+
+Este comando compila el sitio y lo sirve en `http://localhost:3001/MercaAndes_Documentation/`.
+El inglés está en la raíz y el español en `/es/`. También puedes hacerlo por
+separado con `npm run build` y `npm run serve`.
+
+## Compilar
 
 ```bash
 npm run build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-## Deployment
-
-Using SSH:
-
-```bash
-USE_SSH=true npm run deploy
-```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> npm run deploy
-```
-
-If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Genera el sitio estático en la carpeta `build`.

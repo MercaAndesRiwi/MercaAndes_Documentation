@@ -5,7 +5,9 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
+    "start:es": "docusaurus start --locale es",
     "build": "docusaurus build",
+    "preview": "docusaurus build && docusaurus serve --port 3001",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
