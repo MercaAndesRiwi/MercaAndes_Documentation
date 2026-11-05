@@ -1,139 +1,138 @@
+---
+title: Infrastructure and Deployment Architecture
+description: Accepted AWS infrastructure plan, deployment phases, security boundaries, and validation guidance for MercaAndes.
+---
+
 # Infrastructure and Deployment Architecture
 
-## 1. Overview
+> **Proposal status:** Accepted
+> **Date:** October 9, 2026
+> **Project:** MercaAndes
 
-The MercaAndes infrastructure design uses AWS services to support containerized applications, data processing, storage, messaging, and analytical workloads.
+## Purpose and scope
 
-The deployment plan is organized into five phases, beginning with network security and ending with the analytics layer.
+This page describes the accepted AWS infrastructure plan for MercaAndes and how its phases fit together. It expands the architecture diagram into a readable sequence, from the network and identity foundation through analytical consumption. The design is intended to support the project's APIs, ingestion and messaging workloads, data lake, relational serving database, and analytics tools.
 
-> **Status:** The phases described below represent the documented deployment plan. Their inclusion does not confirm that all resources have already been provisioned.
+Acceptance of the plan records an architecture decision; it does not, by itself, prove that every AWS resource is currently deployed or that each validation has passed. Deployment claims below are qualified according to the available deployment record. Update the status when current AWS evidence is available.
 
-## 2. Infrastructure Diagram
+## Infrastructure diagram
 
-The following diagram presents the planned infrastructure and its deployment phases.
+The diagram summarizes the five accepted phases and the main dependencies between them.
 
-![1792106350752](image/03-infrastructure/1792106350752.png)
+![Accepted AWS infrastructure phases for MercaAndes](image/03-infrastructure/1792106350752.png)
 
-## 3. Network and Security Foundation
+The sequence is a dependency guide rather than a requirement to deploy every resource at once. Each phase should be checked before a dependent service is exposed to traffic or production data.
 
-The first phase establishes the network and access-control foundation.
+## Phase 1: Network and security foundation
 
-### Amazon VPC
+### Identity and permissions
 
-A custom VPC provides an isolated network environment for the platform.
+Use separate IAM roles for AWS service execution and application workloads. The **ECS task execution role** grants ECS the permissions needed to pull images from ECR and publish container logs to CloudWatch. Application task roles receive only the AWS permissions required by that workload, such as access to specific S3 prefixes.
 
-The plan calls for public and private subnets distributed across at least two Availability Zones.
+Database access is controlled through private network placement, Security Groups, database credentials, and the database's own authorization. An IAM role alone does not grant a container access to PostgreSQL. Store credentials in an approved secret store and grant workloads access only to the required secret.
 
-- **Public subnets:** intended for internet-facing resources, such as the Application Load Balancer.
-- **Private compute subnets:** intended for internal processing workloads.
-- **Private data subnets:** intended for the PostgreSQL database.
+Review each role's trust policy and permissions for least privilege. Avoid broad permissions such as unrestricted `s3:*` or database access to every resource when a narrower policy will work.
 
-An Internet Gateway provides internet connectivity for public resources. A NAT Gateway allows private resources to access external services when required.
+### VPC and subnets
 
-### AWS IAM
+Place the platform in a custom VPC. Distribute public and private subnets across at least two Availability Zones where the selected service and cost model require it.
 
-IAM roles provide permissions to AWS services and workloads.
+- **Public subnets** host internet-facing entry points such as the Application Load Balancer. An Internet Gateway provides their internet route.
+- **Private compute subnets** host internal services and workers, including ECS tasks and private EC2 workloads for messaging where applicable.
+- **Private data subnets** host Amazon RDS for PostgreSQL.
+- A **NAT Gateway** can provide outbound internet access for private workloads that need external APIs or updates. Its hourly and data-processing charges should be included in the cost estimate.
 
-The plan identifies an ECS Task Execution Role for pulling images from ECR and sending logs, along with workload-specific permissions for accessing S3 and RDS.
+Keep databases and internal brokers off public subnets. Give private workloads only the routes and outbound access they need.
 
 ### Security Groups
 
-The documented security design includes:
+Treat Security Groups as stateful, resource-level firewalls. The intended traffic boundaries are:
 
-- **SG_ALB:** controls incoming HTTP and HTTPS traffic to the load balancer.
-- **SG_ECS:** restricts application traffic to approved sources, including the load balancer where applicable.
-- **SG_RDS:** allows PostgreSQL traffic on port 5432 only from authorized application resources.
+| Group | Intended inbound traffic |
+|---|---|
+| `SG_ALB` | HTTP/HTTPS from approved internet clients; prefer HTTPS for public access. |
+| `SG_ECS` | Application traffic from `SG_ALB` only for services exposed through the load balancer. Add narrowly scoped rules for internal service-to-service communication. |
+| `SG_RDS` | PostgreSQL on port 5432 only from the specific application or worker Security Groups that require database access. |
 
-The database and internal processing services are intended to remain inaccessible directly from the public internet.
+Do not open port 5432 to `0.0.0.0/0`. Verify that RDS is not publicly accessible and that an internet client cannot connect directly to the database. For an authorized connectivity check, use a workload or controlled test host inside the VPC with a narrowly scoped rule, then remove temporary access.
 
-## 4. Storage Layer
+## Phase 2: Storage layers
 
-### Amazon S3
+### Amazon S3 data lake
 
-Amazon S3 provides storage for the data lake.
+Store lake data in Bronze, Silver, and Gold layers. These can be separate buckets or prefixes in a bucket, provided access policies preserve the required separation. Block public access, enable encryption, and scope IAM permissions to the prefixes each workload needs.
 
-The plan organizes data into Bronze, Silver, and Gold layers, either through separate buckets or prefixes within a main bucket.
+Validate the write path with a harmless test object in the Bronze location, confirm that the intended role can read or write it, and remove the test object after the check. A successful upload confirms access to that path; it does not validate the ingestion or transformation pipeline.
 
 ### Amazon RDS for PostgreSQL
 
-Amazon RDS hosts the relational serving database in private data subnets.
+Place RDS PostgreSQL in the private data subnets and associate `SG_RDS`. Document the engine version, instance class, storage, backup retention, encryption, maintenance window, and whether Multi-AZ is enabled. These settings affect both resilience and cost.
 
-The deployment plan includes configuring the appropriate Security Group and validating connectivity from an authorized client.
+The accepted diagram depicts PostgreSQL as Multi-AZ. Confirm that this matches the deployed RDS configuration and record its availability and cost trade-off; the diagram alone is not evidence that Multi-AZ is enabled.
 
-## 5. Messaging and Ingestion
+Validate connectivity from an authorized application or test workload inside the VPC using a secret-managed credential and TLS where configured. Do not make RDS public or open port 5432 to test it from a personal computer. Confirm that backups and restoration procedures meet the project's recovery needs.
 
-### RabbitMQ and Kafka
+### Administrative access through an SSH tunnel
 
-The deployment plan proposes running RabbitMQ and Kafka on EC2 instances in private compute subnets.
+For an authorized administrator connecting from a workstation, the supplied connection profile describes a path through an EC2 bastion and an SSH tunnel to the private RDS endpoint. It identifies AWS region `us-east-2`, PostgreSQL port `5432`, and database `merca_gold`. Keep the exact RDS hostname, bastion address, account names, and credentials in an access-controlled operational store; this documentation site may be publicly accessible.
 
-These services support asynchronous messaging and event streaming.
+In the database client's SSH settings, use the bastion as the tunnel host and the RDS endpoint as the database host. The RDS Security Group must allow port 5432 from the bastion's Security Group. The bastion Security Group should allow port 22 only from approved administrator sources. Do not open either port to all internet addresses.
 
-The configuration includes the required messaging resources, connectivity, and acknowledgement mechanisms.
+The profile's region and instance name need reconciliation before they are treated as the current production connection: the profile points to `us-east-2`, while the repository's Terraform default is `us-east-1`, and the Terraform RDS identifier differs from the supplied endpoint name. The database name and account name match the Terraform defaults, but confirm all values against the live RDS instance and the approved secret store.
 
-## 6. Compute and Orchestration
+For Amazon Linux 2 and Amazon Linux 2023, SSH password authentication is disabled by default; `ec2-user` normally connects with the EC2 key pair or an approved key-based access method. Do not assume that a password in a database client's SSH form is valid. Verify the bastion's AMI and authentication policy with its administrator. Use a separate database credential and SSH key, and rotate any credential that has been shared in chat or source control.
 
-### Amazon ECR
+## Phase 3: Messaging and ingestion
 
-Private ECR repositories store container images for APIs, workers, and processing jobs.
+RabbitMQ and Kafka support different messaging needs: RabbitMQ handles operational queues and asynchronous work, while Kafka provides a durable event stream for marketplace events and downstream consumers. The accepted design places broker workloads on EC2 instances in private compute subnets.
 
-Images are built, versioned, and pushed to the registry before deployment.
+Define persistence, acknowledgements, retry and dead-letter behavior, Kafka topics and retention, and monitoring before relying on either broker for production events. Stateful brokers need a cluster and storage design that preserves broker identity and data. Do not add generic Auto Scaling to broker instances unless the cluster membership, persistent storage, and recovery behavior are designed for it.
 
-### Amazon ECS and Application Load Balancer
+Validate broker connectivity from another authorized workload in the same VPC. For RabbitMQ, check that the application can connect to the configured port (commonly 5672) without exposing the broker to the public internet. Then publish and consume a test message and confirm acknowledgement and recovery behavior.
 
-Amazon ECS manages the deployment of containerized services using task definitions and the corresponding container images.
+## Phase 4: Container compute and orchestration
 
-An Application Load Balancer distributes incoming application traffic to supported services and uses health checks to identify healthy targets.
+### ECR image registry
 
-The plan includes Fargate services behind the load balancer.
+Publish private, versioned container images to Amazon ECR for APIs, workers, and processing jobs. Tag production images with an immutable commit or release identifier; `latest` can be retained for convenience, but should not be the only deployment reference.
 
-### Asynchronous Workers
+Verify the expected image repository and tag or digest in ECR before updating an ECS task definition.
 
-Worker services consume messages from RabbitMQ and execute background tasks.
+### ECS, Fargate, and Application Load Balancer
 
-The target design includes scaling workers according to workload demand. Queue-depth-based scaling requires an appropriate metric and scaling configuration.
+Amazon ECS manages service task definitions and deployments. Run supported API services on Fargate and place the Application Load Balancer in public subnets. Configure target groups and health checks so that the load balancer sends traffic only to healthy tasks. Restrict task ingress to the ALB Security Group for services that are meant to be accessed through it.
 
-## 7. Analytics Layer
+### Asynchronous workers and scaling
 
-### Amazon Athena
+Run workers as ECS services or tasks in private compute subnets. Give each worker only the broker, database, secret, and S3 access that its job requires. Test message publication, consumption, acknowledgement, and CloudWatch logging.
 
-Amazon Athena queries datasets stored in Amazon S3 through SQL.
+Scaling workers based on queue depth requires a queue-depth metric to be made available to CloudWatch and connected to an ECS scaling policy. Treat this as implemented only after the metric, policy, and scale-out/scale-in behavior have been verified.
 
-The deployment plan includes creating external tables that reference the appropriate data lake locations.
+## Phase 5: Analytics layer
 
-### Power BI and Metabase
+Register Gold datasets in the AWS Glue Data Catalog and query them with Amazon Athena. Configure Athena's query results location and its access permissions separately from the source data location. Use a small read-only query, such as a limited sample from a Gold table, to validate the catalog, S3 permissions, and query path.
 
-Power BI and Metabase provide analytical consumption and business reporting.
+Power BI or Metabase can consume curated data through the approved serving connection. Document the connection method and credentials separately; do not embed secrets in dashboards, source files, or this page.
 
-Their connections depend on the availability and configuration of the corresponding data sources.
+## Deployment record and verification status
 
-## 8. Deployment Phases
+The deployment log currently records a successful PostgreSQL connection and responding API endpoints. It also marks the S3 bucket and layer prefixes as requiring verification; it does not record a successful Athena query. The listed API deployment uses public task IPs and port 8000, which is different from the accepted ALB-to-private-task boundary described above.
 
-| Phase                              | Objective                                                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------- |
-| 1. Network and Security Foundation | Configure IAM, VPC, subnets, routing, and Security Groups.                         |
-| 2. Storage Layers                  | Prepare S3 data lake storage and the RDS PostgreSQL instance.                      |
-| 3. Messaging and Ingestion         | Deploy and validate RabbitMQ and Kafka.                                            |
-| 4. Compute and Orchestration       | Publish container images, configure ECS and the load balancer, and deploy workers. |
-| 5. Analytics Layer                 | Configure Athena tables and validate analytical access.                            |
+Before describing the whole platform as verified, reconcile these differences against the live AWS configuration. Confirm S3 and Athena directly, check whether the APIs are behind the ALB, and record any deliberate exceptions to the private-subnet and Security Group design. Keep public endpoints limited to the APIs that are intended to be public; do not expose RDS or broker ports.
 
-Each phase should be validated before the next dependent components are integrated.
+## Phase summary
 
-## 9. Validation and Security Considerations
+| Phase | Main outcome | Evidence to record |
+|---|---|---|
+| 1. Network and security | IAM roles, VPC, subnet routes, and Security Groups establish controlled access. | Role policies and trust, subnet and route inventory, Security Group rules, and a failed public database-access check. |
+| 2. Storage | S3 layers and private PostgreSQL are available to authorized workloads. | S3 test-object check, RDS subnet and public-access settings, backup configuration, and an authorized connectivity check. |
+| 3. Messaging and ingestion | RabbitMQ and Kafka accept and deliver events within the VPC. | Broker health, test message flow, acknowledgements, persistence, and recovery evidence. |
+| 4. Compute and orchestration | ECR images run as healthy ECS/Fargate services and workers. | Image digests, task-definition revisions, ALB target health, CloudWatch logs, and worker processing evidence. |
+| 5. Analytics | Athena queries cataloged Gold data for analytical consumers. | Catalog definition, query-results location, successful limited query, and validated BI connection. |
 
-The deployment plan identifies several validation activities:
+## Related documentation
 
-- Verify IAM roles and least-privilege permissions.
-- Confirm that private resources are not publicly accessible.
-- Test authorized PostgreSQL connectivity.
-- Validate RabbitMQ connectivity within the VPC.
-- Confirm that container images are available in ECR.
-- Verify ECS service health and worker message consumption.
-- Execute a sample Athena query against the data lake.
-
-Credentials and secrets must be stored securely and must not be committed to source control.
-
-## 10. Related Documentation
-
-- [Architecture Overview](docs/03-architecture/01-overview.md)
-- [Architecture Components](docs/03-architecture/02-components.md)
-- [Technical Decisions](docs/03-architecture/04-technical-decisions.md)
+- [Architecture overview](01-overview.md)
+- [Architecture components](02-components.md)
+- [Technical decisions](04-technical-decisions.md)
+- [IAM and security](05-iam-security.md)

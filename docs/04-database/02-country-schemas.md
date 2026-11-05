@@ -107,4 +107,4 @@ Likewise, the existence of a country schema does not automatically guarantee tha
 
 ## 8. Related Documentation
 
-- [Entity-Relationship Model](docs/04-database/01-entity-relationship-model.md)
+- [Entity-Relationship Model](01-entity-relationship-model.md)

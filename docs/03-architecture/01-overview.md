@@ -120,7 +120,7 @@ The implementation status should be updated as components are completed and test
 
 ## 8. Related Documentation
 
-- [Architecture Components](docs/03-architecture/02-components.md)
-- [Architecture Decisions](docs/03-architecture/04-technical-decisions.md)
+- [Architecture Components](02-components.md)
+- [Architecture Decisions](04-technical-decisions.md)
 
 For environment configuration and execution instructions, refer to the Installation and Deployment section.
