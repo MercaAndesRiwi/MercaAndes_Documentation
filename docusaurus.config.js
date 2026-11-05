@@ -6,6 +6,9 @@
 
 import {themes as prismThemes} from 'prism-react-renderer';
 
+const vercelDomain =
+  process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 /** @type {import('@docusaurus/types').Config} */
@@ -19,11 +22,12 @@ const config = {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  // Set the production url of your site here
-  url: 'https://mercaandesriwi.github.io',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/MercaAndes_Documentation/',
+  // Use Vercel's production domain when building there; preserve GitHub Pages
+  // routing for local builds and any existing GitHub Pages deployment.
+  url: vercelDomain
+    ? `https://${vercelDomain}`
+    : 'https://mercaandesriwi.github.io',
+  baseUrl: process.env.VERCEL ? '/' : '/MercaAndes_Documentation/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
