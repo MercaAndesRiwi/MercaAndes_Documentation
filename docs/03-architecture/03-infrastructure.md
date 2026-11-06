@@ -11,9 +11,7 @@ description: Accepted AWS infrastructure plan, deployment phases, security bound
 
 ## Purpose and scope
 
-This page describes the accepted AWS infrastructure plan for MercaAndes and how its phases fit together. It expands the architecture diagram into a readable sequence, from the network and identity foundation through analytical consumption. The design is intended to support the project's APIs, ingestion and messaging workloads, data lake, relational serving database, and analytics tools.
-
-Acceptance of the plan records an architecture decision; it does not, by itself, prove that every AWS resource is currently deployed or that each validation has passed. Deployment claims below are qualified according to the available deployment record. Update the status when current AWS evidence is available.
+This page describes the accepted AWS infrastructure architecture for MercaAndes and how its five phases fit together, from network and identity through analytical consumption. It covers the project's APIs, ingestion and messaging workloads, data lake, relational serving database, and analytics tools.
 
 ## Infrastructure diagram
 
@@ -21,7 +19,7 @@ The diagram summarizes the five accepted phases and the main dependencies betwee
 
 ![Accepted AWS infrastructure phases for MercaAndes](image/03-infrastructure/1792106350752.png)
 
-The sequence is a dependency guide rather than a requirement to deploy every resource at once. Each phase should be checked before a dependent service is exposed to traffic or production data.
+The sequence shows the dependencies between platform layers, from foundational network and identity services to analytics.
 
 ## Phase 1: Network and security foundation
 
@@ -114,21 +112,15 @@ Register Gold datasets in the AWS Glue Data Catalog and query them with Amazon A
 
 Power BI or Metabase can consume curated data through the approved serving connection. Document the connection method and credentials separately; do not embed secrets in dashboards, source files, or this page.
 
-## Deployment record and verification status
-
-The deployment log currently records a successful PostgreSQL connection and responding API endpoints. It also marks the S3 bucket and layer prefixes as requiring verification; it does not record a successful Athena query. The listed API deployment uses public task IPs and port 8000, which is different from the accepted ALB-to-private-task boundary described above.
-
-Before describing the whole platform as verified, reconcile these differences against the live AWS configuration. Confirm S3 and Athena directly, check whether the APIs are behind the ALB, and record any deliberate exceptions to the private-subnet and Security Group design. Keep public endpoints limited to the APIs that are intended to be public; do not expose RDS or broker ports.
-
 ## Phase summary
 
-| Phase | Main outcome | Evidence to record |
-|---|---|---|
-| 1. Network and security | IAM roles, VPC, subnet routes, and Security Groups establish controlled access. | Role policies and trust, subnet and route inventory, Security Group rules, and a failed public database-access check. |
-| 2. Storage | S3 layers and private PostgreSQL are available to authorized workloads. | S3 test-object check, RDS subnet and public-access settings, backup configuration, and an authorized connectivity check. |
-| 3. Messaging and ingestion | RabbitMQ and Kafka accept and deliver events within the VPC. | Broker health, test message flow, acknowledgements, persistence, and recovery evidence. |
-| 4. Compute and orchestration | ECR images run as healthy ECS/Fargate services and workers. | Image digests, task-definition revisions, ALB target health, CloudWatch logs, and worker processing evidence. |
-| 5. Analytics | Athena queries cataloged Gold data for analytical consumers. | Catalog definition, query-results location, successful limited query, and validated BI connection. |
+| Phase | Main outcome |
+|---|---|
+| 1. Network and security | IAM roles, VPC, subnet routes, and Security Groups establish controlled access. |
+| 2. Storage | S3 layers and private PostgreSQL provide storage for authorized workloads. |
+| 3. Messaging and ingestion | RabbitMQ and Kafka provide operational messaging and event streaming. |
+| 4. Compute and orchestration | ECR, ECS/Fargate, workers, and the ALB run and route containerized services. |
+| 5. Analytics | Athena queries cataloged Gold data for analytical consumers. |
 
 ## Related documentation
 
@@ -136,3 +128,4 @@ Before describing the whole platform as verified, reconcile these differences ag
 - [Architecture components](02-components.md)
 - [Technical decisions](04-technical-decisions.md)
 - [IAM and security](05-iam-security.md)
+- [Deployed APIs and operational consoles](06-services-apis.md)

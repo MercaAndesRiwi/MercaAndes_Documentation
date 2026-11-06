@@ -7,7 +7,7 @@ description: Decisiones arquitectónicas aceptadas, fundamentos y consecuencias 
 
 ## 1. Propósito
 
-Esta página resume las decisiones de arquitectura documentadas para MercaAndes, su fundamento y sus consecuencias previstas.
+Esta página resume las decisiones de arquitectura documentadas para MercaAndes, su fundamento y sus consecuencias.
 
 Las decisiones corresponden al documento de arquitectura aceptado el 4 de octubre de 2026 y al plan de infraestructura aceptado el 9 de octubre de 2026. Registran el diseño aprobado, pero no confirman por sí solas la implementación de cada componente.
 
@@ -98,7 +98,7 @@ Las decisiones corresponden al documento de arquitectura aceptado el 4 de octubr
 
 ## 8. Aislamiento de cargas de trabajo
 
-**Estado:** Aceptada en el diseño objetivo
+**Estado:** Aceptada
 
 **Decisión:** separar las cargas según sus responsabilidades de procesamiento y necesidades de recursos.
 
@@ -112,7 +112,7 @@ Las decisiones corresponden al documento de arquitectura aceptado el 4 de octubr
 
 ## 9. Resumen de decisiones
 
-| Decisión | Beneficio previsto |
+| Decisión | Beneficio |
 |---|---|
 | Lambda + Medallion | Separa rutas de procesamiento y organiza la madurez de los datos. |
 | Lago de datos en S3 | Conserva conjuntos históricos y transformados. |

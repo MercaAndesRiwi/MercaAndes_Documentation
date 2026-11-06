@@ -11,7 +11,6 @@ MercaAndes está concebida como una plataforma de datos que integra y procesa in
 
 La arquitectura combina los patrones **Lambda** y **Medallion**. Lambda separa el procesamiento histórico por lotes del procesamiento de eventos casi en tiempo real; Medallion organiza los datos según su nivel de transformación y calidad. La infraestructura utiliza servicios de AWS y cargas contenerizadas para ingesta, procesamiento, orquestación, almacenamiento y análisis.
 
-> **Estado de arquitectura:** este documento describe la arquitectura aprobada. El estado real de despliegue se indica por componente y debe sustentarse con evidencia de AWS.
 
 ## 2. Diagrama de arquitectura
 
@@ -69,7 +68,7 @@ Los procesos de ingesta recopilan y cargan la información necesaria para el pro
 
 ### 4.4. Analítica y consumo
 
-La arquitectura propone **Power BI** para tableros e informes ejecutivos y **Metabase** para exploración y consultas ad hoc. El acceso de cada herramienta depende de que la fuente de datos y sus permisos estén configurados.
+**Power BI** ofrece tableros e informes ejecutivos y **Metabase** permite explorar datos y ejecutar consultas ad hoc. Cada herramienta accede a las fuentes mediante sus permisos configurados.
 
 ## 5. Infraestructura y seguridad
 
@@ -94,13 +93,7 @@ El diseño ubica los servicios internos de procesamiento y las bases de datos en
 5. Amazon RDS para PostgreSQL y Athena permiten consultar datos relacionales y del lago.
 6. Power BI y Metabase consumen información para análisis e informes.
 
-La secuencia exacta, los protocolos y las dependencias deben documentarse por cada integración implementada.
-
-## 7. Estado de implementación
-
-Esta página describe el diseño arquitectónico; no implica que todos sus componentes estén desplegados ni integrados. Consulta [Infraestructura y arquitectura de despliegue](03-infrastructure.md) para las fases aceptadas y las verificaciones registradas. Mantén el estado actualizado con evidencia de AWS.
-
-## 8. Documentación relacionada
+## 7. Documentación relacionada
 
 - [Componentes de arquitectura](02-components.md)
 - [Decisiones técnicas](04-technical-decisions.md)

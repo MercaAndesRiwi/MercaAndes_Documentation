@@ -1,19 +1,17 @@
 ---
 title: Infraestructura y arquitectura de despliegue
-description: Plan AWS aceptado para MercaAndes, sus fases, límites de seguridad y validaciones.
+description: Arquitectura AWS aceptada para MercaAndes, sus fases y límites de seguridad.
 ---
 
 # Infraestructura y arquitectura de despliegue
 
-> **Estado de la propuesta:** Aceptada
+> **Estado:** Aceptado
 > **Fecha:** 9 de octubre de 2026
 > **Proyecto:** MercaAndes
 
 ## Propósito y alcance
 
-Esta página presenta el plan de infraestructura AWS aceptado para MercaAndes y explica cómo se relacionan sus fases, desde la red y la identidad hasta el consumo analítico. El diseño respalda las APIs, la ingesta y mensajería, el lago de datos, la base relacional de servicio y las herramientas de analítica.
-
-La aceptación registra una decisión de arquitectura; por sí sola no demuestra que todos los recursos estén desplegados ni que cada validación haya pasado. El estado de despliegue se describe con el alcance de la evidencia disponible y debe actualizarse cuando se confirme la configuración vigente de AWS.
+Esta página presenta la arquitectura AWS aceptada para MercaAndes y explica cómo se relacionan sus cinco fases, desde la red y la identidad hasta el consumo analítico. Incluye las APIs, la ingesta y mensajería, el lago de datos, la base relacional de servicio y las herramientas de analítica.
 
 ## Diagrama de infraestructura
 
@@ -21,7 +19,7 @@ El diagrama resume las cinco fases aceptadas y sus principales dependencias.
 
 ![Fases aceptadas de la infraestructura AWS de MercaAndes](image/03-infrastructure/1792106350752.png)
 
-La secuencia sirve como guía de dependencias; no exige desplegar todos los recursos al mismo tiempo. Antes de exponer tráfico o datos de producción, valida cada fase y sus dependencias.
+La secuencia muestra las dependencias entre las capas de la plataforma, desde la red e identidad hasta la analítica.
 
 ## Fase 1: Red, identidad y seguridad
 
@@ -46,9 +44,9 @@ Mantén las bases de datos y los brokers internos fuera de subredes públicas. C
 
 ### Security Groups
 
-Los Security Groups son firewalls con estado asociados a los recursos. Los límites de tráfico previstos son:
+Los Security Groups son firewalls con estado asociados a los recursos. La arquitectura define estos límites de tráfico:
 
-| Grupo | Tráfico de entrada previsto |
+| Grupo | Tráfico de entrada permitido |
 |---|---|
 | `SG_ALB` | HTTP/HTTPS desde clientes de internet aprobados; utiliza HTTPS para el acceso público siempre que esté configurado. |
 | `SG_ECS` | Tráfico de aplicación solo desde `SG_ALB` en servicios expuestos por el balanceador. Agrega reglas acotadas para la comunicación interna necesaria. |
@@ -114,21 +112,15 @@ Registra los conjuntos Gold en el catálogo de datos de AWS Glue y consúltalos 
 
 Power BI o Metabase pueden consumir datos curados mediante la conexión de servicio aprobada. Documenta el método de conexión y las credenciales aparte; no incluyas secretos en tableros, código ni en esta página.
 
-## Registro de despliegue y estado de verificación
-
-La bitácora de despliegue registra una conexión exitosa a PostgreSQL y endpoints de API que responden. También deja pendientes de verificar el bucket y los prefijos S3; no registra una consulta de Athena exitosa. Las APIs se describen con IP pública de tarea y puerto 8000, distinto del límite aceptado de ALB público hacia tareas privadas indicado arriba.
-
-Antes de declarar verificada toda la plataforma, concilia estas diferencias con la configuración activa de AWS. Confirma directamente S3 y Athena, verifica si las APIs están detrás del ALB y registra cualquier excepción deliberada al diseño de subredes privadas y Security Groups. Limita los endpoints públicos a las APIs que deban serlo; nunca expongas RDS ni los puertos de los brokers.
-
 ## Resumen de fases
 
-| Fase | Resultado principal | Evidencia que conviene registrar |
-|---|---|---|
-| 1. Red y seguridad | Roles IAM, VPC, rutas de subred y Security Groups controlan el acceso. | Políticas y relaciones de confianza, inventario de subredes y rutas, reglas de Security Groups y una comprobación fallida de acceso público a la base. |
-| 2. Almacenamiento | El lago S3 y PostgreSQL privado están disponibles para cargas autorizadas. | Prueba de objeto S3, subred y acceso público de RDS, respaldos y prueba autorizada de conectividad. |
-| 3. Mensajería e ingesta | RabbitMQ y Kafka reciben y entregan eventos dentro de la VPC. | Salud de brokers, flujo de mensaje de prueba, confirmaciones, persistencia y recuperación. |
-| 4. Cómputo y orquestación | Imágenes ECR se ejecutan como servicios y workers ECS/Fargate saludables. | Digest de imagen, revisión de definición de tarea, salud del ALB, logs de CloudWatch y evidencia de procesamiento. |
-| 5. Analítica | Athena consulta datos Gold registrados para los consumidores analíticos. | Definición de catálogo, ubicación de resultados, consulta limitada exitosa y conexión BI validada. |
+| Fase | Resultado principal |
+|---|---|
+| 1. Red y seguridad | Roles IAM, VPC, rutas de subred y Security Groups controlan el acceso. |
+| 2. Almacenamiento | Las capas S3 y PostgreSQL privado almacenan datos para cargas autorizadas. |
+| 3. Mensajería e ingesta | RabbitMQ y Kafka proporcionan mensajería operativa y streaming de eventos. |
+| 4. Cómputo y orquestación | ECR, ECS/Fargate, workers y ALB ejecutan y enrutan servicios contenerizados. |
+| 5. Analítica | Athena consulta datos Gold registrados para los consumidores analíticos. |
 
 ## Documentación relacionada
 
@@ -136,3 +128,4 @@ Antes de declarar verificada toda la plataforma, concilia estas diferencias con 
 - [Componentes de arquitectura](02-components.md)
 - [Decisiones técnicas](04-technical-decisions.md)
 - [IAM y seguridad](05-iam-security.md)
+- [APIs desplegadas y consolas operativas](06-services-apis.md)

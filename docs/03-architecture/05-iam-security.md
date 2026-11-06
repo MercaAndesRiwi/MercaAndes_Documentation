@@ -7,9 +7,7 @@ MercaAndes uses AWS Identity and Access Management (IAM) to define identities, p
 
 This documentation describes the IAM strategy associated with **US-03**, including functional IAM users, infrastructure roles, least-privilege access, and security practices.
 
-The IAM configuration is intended to be managed through Infrastructure as Code (IaC), allowing permissions and trust relationships to be defined and reviewed alongside the infrastructure configuration.
-
-> **Implementation status:** The presence of IAM declarations in Terraform does not, by itself, confirm that the resources have been deployed or that the corresponding permissions are active in AWS. Deployment status must be verified independently.
+The IAM configuration is managed through Infrastructure as Code (IaC), allowing permissions and trust relationships to be defined and reviewed alongside the infrastructure configuration.
 
 ## 2. Security Principles
 

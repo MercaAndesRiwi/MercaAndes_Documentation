@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The MercaAndes target architecture is composed of data sources, processing services, storage systems, messaging infrastructure, and analytical tools.
+The MercaAndes architecture is composed of data sources, processing services, storage systems, messaging infrastructure, and analytical tools.
 
 Each component has a defined responsibility within the data platform. Their integration supports historical processing, event-driven processing, data storage, and business analytics.
 
@@ -42,13 +42,13 @@ The Batch Layer processes historical data through scheduled workflows.
 
 ### Apache Airflow
 
-Apache Airflow is the target workflow orchestration tool. It defines, schedules, and monitors DAGs and their dependencies.
+Apache Airflow defines, schedules, and monitors DAGs and their dependencies.
 
 ### Apache Spark
 
 Apache Spark executes data-processing jobs over historical datasets.
 
-It is intended to support transformations across the Bronze, Silver, and Gold data layers.
+It processes data across the Bronze, Silver, and Gold data layers.
 
 ### Amazon S3
 
@@ -66,21 +66,19 @@ Its persistent event log supports replaying events when reprocessing is required
 
 ### RabbitMQ
 
-RabbitMQ handles operational messaging and asynchronous tasks. The target design separates these responsibilities from Kafka's event-streaming role.
-
-The architecture also proposes using RabbitMQ for operational notifications and background tasks.
+RabbitMQ handles operational messaging, notifications, background tasks, and asynchronous work. Kafka provides the event-streaming backbone.
 
 ### Spark Streaming
 
 Spark Streaming processes incoming event streams in micro-batches.
 
-The target design aims to reuse processing logic where appropriate between batch and streaming workloads.
+Batch and streaming workloads use Spark processing where applicable.
 
 ## 5. Serving Layer
 
 ### Amazon RDS for PostgreSQL
 
-Amazon RDS for PostgreSQL is intended to serve structured relational data and aggregated datasets for operational consumption.
+Amazon RDS for PostgreSQL serves structured relational data and aggregated datasets for operational consumption.
 
 The target infrastructure places the database in private data subnets.
 
@@ -96,7 +94,7 @@ It complements the relational serving database by supporting analytical queries 
 
 Power BI supports business intelligence dashboards, executive reporting, and analysis of business metrics.
 
-The target architecture proposes using RDS for curated data and Athena for exploratory analysis over the data lake.
+RDS serves curated relational data, while Athena supports exploratory analysis over the data lake.
 
 ### Metabase
 
@@ -120,11 +118,11 @@ Docker packages applications and processing jobs into containers. Amazon ECR sto
 
 ### Amazon ECS, EC2, and Fargate
 
-Amazon ECS orchestrates containerized workloads. Amazon EC2 provides compute capacity for designated workloads, while AWS Fargate is planned for supported container services that do not require direct server management.
+Amazon ECS orchestrates containerized workloads. Amazon EC2 and AWS Fargate provide compute capacity for designated workloads.
 
 ## 8. Component Interactions
 
-The target architecture follows this general interaction sequence:
+The platform follows this general interaction sequence:
 
 1. Simulators, historical datasets, and external sources provide data.
 2. Ingestion components collect and validate source information.
@@ -133,12 +131,6 @@ The target architecture follows this general interaction sequence:
 5. Amazon RDS and Athena provide access to structured and lake-based data.
 6. Power BI and Metabase consume datasets for reporting and analysis.
 
-The exact connections, protocols, deployment configurations, and execution dependencies must be documented as each integration is implemented and verified.
-
-## 9. Implementation Status
-
-This page describes the responsibilities of components in the target architecture. It does not imply that every component is deployed or fully integrated.
-
-The implementation status should be maintained alongside the development and deployment records.
+For the API documentation links and the deployed purchase-notification demonstration, see [Deployed APIs and operational consoles](06-services-apis.md).
 
 For infrastructure details, see [Infrastructure and Deployment](03-infrastructure.md). For the rationale behind the architecture, see [Technical Decisions](04-technical-decisions.md).

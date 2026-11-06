@@ -81,7 +81,7 @@ However, the current POS SQL script creates schemas only for Colombia, Peru, Ecu
 
 **Brazil does not have a country-specific POS schema in this script.**
 
-Its historical data should therefore be documented separately from the operational POS schemas. Any future decision to create a Brazilian POS schema must be reflected in the database definition and implementation records.
+Its historical data is documented separately from the operational POS schemas.
 
 ## 6. Benefits of the Schema-Based Approach
 

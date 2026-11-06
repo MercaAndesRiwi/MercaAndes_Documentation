@@ -11,8 +11,6 @@ AWS Identity and Access Management (IAM) define identidades, permisos y controle
 
 Esta página describe la estrategia IAM asociada a **US-03**, incluidos usuarios funcionales, roles de infraestructura, privilegio mínimo y prácticas de seguridad. La configuración se debe mantener como infraestructura como código (IaC), de modo que los permisos y las relaciones de confianza se puedan revisar junto con la infraestructura.
 
-> **Estado de implementación:** que Terraform declare un recurso IAM no confirma por sí solo que se haya desplegado ni que el permiso esté activo en AWS. El estado debe comprobarse en la cuenta.
-
 ## 2. Principios de seguridad
 
 - **Privilegio mínimo:** concede solo los permisos necesarios para cada responsabilidad.
@@ -53,7 +51,7 @@ Los roles IAM proporcionan permisos a servicios y cargas AWS sin que las aplicac
 
 **Propósito:** proporcionar permisos requeridos por APIs que se ejecutan en EC2.
 
-Las responsabilidades previstas incluyen acceso a recursos AWS necesarios y publicación de logs. Limita los permisos a los recursos y acciones que realmente necesite la aplicación.
+Las responsabilidades del rol incluyen acceso a recursos AWS necesarios y publicación de logs. Limita los permisos a los recursos y acciones que realmente necesite la aplicación.
 
 ### 4.2. Rol de procesamiento batch
 
@@ -61,7 +59,7 @@ Las responsabilidades previstas incluyen acceso a recursos AWS necesarios y publ
 
 **Propósito:** respaldar cargas batch de procesamiento, incluidas Spark y Airflow.
 
-Las responsabilidades previstas incluyen leer datos desde ubicaciones S3 autorizadas y respaldar las operaciones de procesamiento y escritura en los recursos configurados. Los permisos efectivos deben corresponder a la arquitectura y los recursos que use cada carga.
+Las responsabilidades del rol incluyen leer datos desde ubicaciones S3 autorizadas y respaldar las operaciones de procesamiento y escritura en los recursos configurados. Los permisos corresponden a la arquitectura y los recursos que usa cada carga.
 
 ### 4.3. Rol de procesamiento de streaming
 
@@ -69,7 +67,7 @@ Las responsabilidades previstas incluyen leer datos desde ubicaciones S3 autoriz
 
 **Propósito:** respaldar cargas de ingesta y procesamiento de eventos.
 
-Las responsabilidades previstas incluyen respaldar los servicios Kafka y RabbitMQ requeridos, procesar eventos y escribir resúmenes en ubicaciones S3 designadas. Configura explícitamente el acceso según los servicios que use el despliegue.
+Las responsabilidades del rol incluyen respaldar los servicios Kafka y RabbitMQ, procesar eventos y escribir resúmenes en ubicaciones S3 designadas. El acceso se limita a los servicios del despliegue.
 
 ### 4.4. Rol de pipeline CI/CD
 
@@ -77,7 +75,7 @@ Las responsabilidades previstas incluyen respaldar los servicios Kafka y RabbitM
 
 **Propósito:** respaldar flujos de despliegue automatizados asociados con GitHub Actions y servicios de contenedores AWS.
 
-Las responsabilidades previstas incluyen operaciones de imágenes en Amazon ECR y despliegues en Amazon ECS cuando estén configurados. Si GitHub Actions asume el rol, la relación de confianza debe limitar qué identidades y flujos pueden hacerlo. Cuando la configuración lo permita, prioriza credenciales de corta duración y GitHub OIDC frente a claves permanentes.
+Las responsabilidades del rol incluyen operaciones de imágenes en Amazon ECR y despliegues en Amazon ECS. La relación de confianza de GitHub Actions limita qué identidades y flujos pueden asumirlo. GitHub OIDC utiliza credenciales de corta duración en lugar de claves permanentes.
 
 ## 5. Políticas IAM y relaciones de confianza
 

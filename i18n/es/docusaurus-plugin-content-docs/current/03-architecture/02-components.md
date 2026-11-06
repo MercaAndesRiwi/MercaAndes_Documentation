@@ -7,7 +7,7 @@ description: Responsabilidades e interacciones entre fuentes, procesamiento, alm
 
 ## 1. Resumen
 
-La arquitectura objetivo de MercaAndes combina fuentes de datos, servicios de procesamiento, almacenamiento, mensajería y herramientas analíticas. Cada componente cumple una responsabilidad dentro de la plataforma.
+La arquitectura de MercaAndes integra fuentes de datos, servicios de procesamiento, almacenamiento, mensajería y herramientas analíticas. Cada componente cumple una responsabilidad dentro de la plataforma.
 
 ## 2. Fuentes de datos e ingesta
 
@@ -49,7 +49,7 @@ El componente de marketplace representa el ciclo de vida de un pedido: creación
 
 ## 6. Capa analítica
 
-**Power BI** respalda tableros de inteligencia de negocio e informes ejecutivos. **Metabase** permite explorar datos y ejecutar consultas ad hoc. El diseño propone utilizar RDS para datos curados y Athena para exploración sobre el lago.
+**Power BI** respalda tableros de inteligencia de negocio e informes ejecutivos. **Metabase** permite explorar datos y ejecutar consultas ad hoc. RDS sirve datos curados y Athena permite explorar la información del lago.
 
 ## 7. Componentes de infraestructura
 
@@ -69,9 +69,7 @@ El componente de marketplace representa el ciclo de vida de un pedido: creación
 
 Los protocolos, las conexiones, el despliegue y las dependencias concretas se deben mantener documentados a medida que se integren y verifiquen los servicios.
 
-## 9. Estado de implementación
-
-Esta página describe responsabilidades previstas; no confirma por sí sola que cada componente esté desplegado o integrado. Consulta [Infraestructura y arquitectura de despliegue](03-infrastructure.md) para el plan aceptado y el estado de verificación registrado.
+Consulta [APIs desplegadas y consolas operativas](06-services-apis.md) para los enlaces a la documentación de las APIs y la demostración de compra con notificación.
 
 ## 10. Documentación relacionada
 

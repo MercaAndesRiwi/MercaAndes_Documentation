@@ -68,7 +68,7 @@ Kafka provides a persistent event-streaming platform for data consumers. RabbitM
 
 RDS provides relational access to structured data intended for operational and business consumption. Athena supports SQL queries directly over datasets in Amazon S3.
 
-This separation is intended to reduce competition between transactional database workloads and large analytical queries.
+This separation reduces competition between transactional database workloads and large analytical queries.
 
 **Consequences:**
 
@@ -111,7 +111,7 @@ The network design aims to reduce public exposure and restrict communication to 
 
 ## 8. Workload Isolation
 
-**Status:** Accepted in the target design
+**Status:** Accepted
 
 **Decision:** Separate workloads according to their processing responsibilities and resource requirements.
 
@@ -123,7 +123,6 @@ The architecture proposes separating batch and streaming responsibilities to red
 
 **Consequences:**
 
-- Compute capacity must be planned for the different workload types.
 - Resource allocation and scaling policies require validation under realistic workloads.
 - The final deployment topology must specify which services run on EC2, ECS-managed capacity, or Fargate.
 

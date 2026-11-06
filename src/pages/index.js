@@ -89,7 +89,7 @@ const content = {
         title: 'Services & APIs',
         description:
           'Discover available services, endpoints, and integration details.',
-        to: '/docs/architecture/components',
+        to: '/docs/architecture/services-apis',
       },
       {
         icon: 'testing',
@@ -186,7 +186,7 @@ const content = {
         title: 'Servicios y APIs',
         description:
           'Descubre los servicios disponibles, los endpoints y los detalles de integración.',
-        to: '/docs/architecture/components',
+        to: '/docs/architecture/services-apis',
       },
       {
         icon: 'testing',

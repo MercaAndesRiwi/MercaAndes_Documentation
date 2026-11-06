@@ -66,7 +66,7 @@ Almacena tasas de cambio por fecha, moneda base y moneda cotizada. Su clave prim
 
 Brasil forma parte del modelo general por los datos históricos de Olist. El atributo `is_operational` de la entidad centralizada `Country` distingue países operativos de países históricos.
 
-Sin embargo, el script POS actual solo crea esquemas para Colombia, Perú, Ecuador, Bolivia y Chile. **Este script no crea un esquema POS para Brasil.** Sus datos históricos deben documentarse aparte de los esquemas POS operativos. Si se decide crear un esquema brasileño, habrá que reflejarlo en la definición y los registros de implementación.
+El script POS crea esquemas para Colombia, Perú, Ecuador, Bolivia y Chile. **No crea un esquema POS para Brasil.** Sus datos históricos se documentan aparte de los esquemas POS operativos.
 
 ## 6. Beneficios del enfoque por esquemas
 
