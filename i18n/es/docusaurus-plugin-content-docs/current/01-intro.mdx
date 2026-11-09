@@ -2,46 +2,54 @@
 id: intro
 title: Introducción
 sidebar_position: 1
-description: Descripción general de MercaAndes, su alcance y esta documentación técnica.
+description: Descripción general del proyecto MercaAndes, su contexto de negocio, el problema que resuelve y sus objetivos.
 ---
 
-# Bienvenido a MercaAndes
+# MercaAndes Omnicanal
 
-**MercaAndes** es una plataforma de datos para integrar y procesar información de ventas e inventario en una operación retail omnicanal y multipaís.
+**MercaAndes** es una plataforma de datos para ventas, inventario y marketplace. El proyecto integra las transacciones de los puntos de venta, los eventos del marketplace y los inventarios de los sellers en una única fuente de información para las áreas comercial, logística y de servicio al cliente.
 
-El proyecto busca organizar datos procedentes de varios canales y países para facilitar su procesamiento y análisis.
+## Contexto del negocio
 
-## Alcance del proyecto
+MercaAndes S.A.S. es una cadena de comercio minorista (retail) con presencia en cinco países de la región andina: Colombia, Perú, Ecuador, Bolivia y Chile. Su operación comprende 140 tiendas físicas, un marketplace propio y vendedores terceros (sellers) que publican y comercializan sus productos en la plataforma.
 
-La plataforma considera los siguientes países:
+El canal digital ha ganado participación en el negocio: durante los últimos dos años pasó de representar el 12 % al 38 % de las ventas. Este crecimiento amplió el volumen y la diversidad de la información que se genera en los puntos de venta, el marketplace y las operaciones de los vendedores externos.
 
-- Colombia
-- Perú
-- Ecuador
-- Bolivia
-- Chile
-- Brasil, dentro del contexto histórico del proyecto
+Los canales cuentan con fuentes y sistemas de información diferentes. Los puntos de venta registran transacciones en bases de datos relacionales por país, el marketplace dispone de información de pedidos y los sellers reportan sus inventarios mediante una API. La plataforma integra estas fuentes para obtener una visión consistente de las ventas netas, las devoluciones y el inventario disponible.
 
-El alcance contempla la organización y el procesamiento de datos comerciales, teniendo en cuenta las particularidades de cada país.
+## Problema a resolver
 
-## Componentes principales
+MercaAndes presenta dificultades para conocer oportunamente el comportamiento de sus ventas y la disponibilidad real de sus productos:
 
-El proyecto reúne componentes que respaldan la gestión y el procesamiento de datos:
+- Cerca del 6 % de las ventas se pierde por quiebres de inventario que el cliente detecta antes que la empresa.
+- Distintas áreas calculan cifras de ventas diferentes, por lo que no existe una única referencia del total vendido.
+- Se activan promociones sobre productos sin existencias, lo que ocasiona cancelaciones y malas reseñas.
+- Los inventarios reportados por los sellers pueden estar desactualizados y su desempeño no cuenta con una medición uniforme.
+- Algunas tiendas acumulan sobreinventario mientras otras presentan faltantes.
 
-- **Fuentes y simuladores de datos:** aportan datos de origen y generan información comercial simulada.
-- **Bases de datos:** organizan la información de ventas y los esquemas específicos por país.
-- **Procesamiento de datos:** prepara, valida y transforma los datos.
-- **Servicios y APIs:** ofrecen interfaces para consultar o gestionar información del proyecto.
-- **Infraestructura y orquestación:** despliegan y coordinan los componentes.
+Los reportes comerciales se elaboran manualmente, dependen de una sola persona y pueden tardar hasta 48 horas. El problema central no es la ausencia de datos, sino su dispersión en diferentes sistemas y formatos, así como la falta de oportunidad para convertirlos en información útil para el negocio.
 
-Las secciones correspondientes describen cada componente con mayor detalle.
+## Objetivos
 
-## Acerca de esta documentación
+La plataforma de datos de MercaAndes está orientada a los siguientes objetivos de negocio:
 
-Esta documentación reúne la información necesaria para entender, desplegar y mantener MercaAndes. Está dirigida a las personas que participan en el desarrollo y la operación técnica del proyecto.
+1. Reducir en un 40 % los quiebres de stock no detectados durante los primeros tres meses de operación.
+2. Consolidar las ventas netas, las devoluciones y el inventario disponible en una fuente única de información.
+3. Generar alertas de quiebres inminentes con al menos 24 horas de anticipación.
+4. Medir y clasificar el desempeño de los vendedores externos mediante criterios objetivos.
+5. Disponer de un tablero comercial diario, actualizado sin intervención manual.
+6. Mantener la información del día en curso con un retraso máximo de 15 minutos.
 
-El contenido se organiza en guías de despliegue, arquitectura, bases de datos, procesamiento, servicios y prácticas de desarrollo. Las páginas de AWS describen la infraestructura y los servicios que componen la plataforma.
+## What you will find in this documentation
 
-## Por dónde empezar
+Este documento presenta el contexto comercial de MercaAndes, las necesidades que motivaron la plataforma y los objetivos que orientan su desarrollo. Describe las fuentes de información que alimentan la solución y explica cómo se organiza el flujo de datos mediante las arquitecturas Lambda y Medallón.
 
-Para preparar el entorno de desarrollo, comienza por [Instalación y despliegue](02-installation-deployment/01-prerequisites.md). Luego revisa la [arquitectura del sistema](03-architecture/01-overview.md) para conocer cómo se organizan e interactúan sus componentes.
+También cubre la infraestructura en AWS y sus drivers de costo, los controles de acceso IAM, el modelo de datos transaccional y analítico, y los servicios y APIs disponibles para la integración y las pruebas. Finalmente, documenta las siete preguntas de negocio que orientan el tablero de Power BI y el glosario de términos del proyecto.
+
+Comienza con **[Fuentes de datos](data-sources/data-sources)**, o ve a **[Requisitos previos](installation-deployment/prerequisites)** si quieres configurar y ejecutar la plataforma local.
+
+## About this documentation
+
+Esta documentación centraliza la información necesaria para entender, configurar y trabajar con MercaAndes. Está dirigida a desarrolladores y miembros del equipo técnico responsables de la configuración, el desarrollo, las pruebas y el mantenimiento, así como a usuarios de negocio que quieran entender el proyecto.
+
+El sitio está escrito en inglés, con traducción al español disponible a través del selector de idioma en la barra de navegación.

@@ -1,58 +1,43 @@
+﻿---
+id: run-data-processing
+title: Run Data Processing
+sidebar_position: 4
+description: Airflow DAGs, Spark jobs, and services that move data through Bronze, Silver, and Gold.
+---
 
 # Run Data Processing
 
-Run the following commands from the root of `data-processing-dev`, after PostgreSQL is reachable and the environment variables are configured.
+With the Compose stack up, data processing runs through Apache Airflow, PySpark jobs, and the speed-layer services. Access the Airflow web interface at `http://localhost:8080` (the credentials are configured in `.env`).
 
-## Install Python dependencies
+## Orchestrated pipeline
 
-```powershell
-uv sync --locked
-```
+The DAGs run in the following sequence:
 
-Verify the Python environment and development tools:
+| # | DAG | Schedule | Purpose |
+|---|---|---|---|
+| 1 | `f1_kaggle_historical` | `@once` | Initial load of the Olist historical dataset into S3 Bronze. |
+| 2 | `bronze_to_silver_cleaning` | `@daily` | Cleans, anonymizes, deduplicates, and validates data, writing Silver tables and views, and exports daily sales. |
+| 3 | `silver_to_gold_business_rules` | `@daily` | Applies the Gold business rules in parallel chains: stockout risk (RN-04) and inventory accuracy; exports Gold tables to S3 and refreshes Power BI views. |
+| 4 | `seller_scoring` | `@weekly` | Prepares seller-score inputs, runs the PySpark score calculation through JDBC, and updates seller status. |
+| 5 | `f7_promotions_weekly` | `@weekly` | Reads the weekly promotions file, enqueues publishing, and triggers silent-store alerts. |
+| 6 | `dag_partitioned_reprocessing` | `@daily` | Re-executes historical processing on selected date partitions. |
 
-```powershell
-uv run python --version
-uv run pytest --version
-uv run ruff --version
-```
+To run a DAG immediately, open it in the Airflow UI and use **Trigger DAG**. Confirm the tasks finish successfully, including the Spark tasks. The `seller_scoring` DAG result is exposed by the Inventory API at `GET /api/v1/sellers/{seller_id}/score`.
 
-## Start the standalone PostgreSQL service (when using the data-processing Compose)
+## Speed layer services
 
-The data-processing README documents this alternative for running PostgreSQL independently of the integrated infrastructure stack:
+- **Marketplace events (F4):** generate lifecycle events with fault injection (duplicates and out-of-order) from the Marketplace API `POST /api/v1/marketplace/events`. The producer parameters accept the number of orders, a seed, duplicate rate, and out-of-order delays.
+- **Seller score ingestion:** the `seller-score-ingestion` consumer reads marketplace events from Kafka and maintains the Silver seller-score inputs.
+- **Hot inventory risk:** Spark Streaming consumes the order stream in micro-batches and maintains the `hot_inventory_risk` table for near-real-time stock monitoring.
+- **Notification worker:** consumes purchase notifications from the RabbitMQ queue `mercaandes.notifications.purchase` and delivers the confirmation email (or logs it in dry-run mode).
+- **Reports and operational alerts:** the `operational-messaging` service exposes `POST /api/v1/reports` to request scheduled commercial reports and publishes alerts to the RabbitMQ alert queues.
 
-```powershell
-docker compose --env-file .env -f infrastructure/docker/docker-compose.yml up -d
-uv run python -m src.simulators.pos_seed.connection
-```
+## Weekly promotions file (F7)
 
-Use this standalone database option when working with the data-processing repository by itself. Do not start both PostgreSQL Compose configurations with the same host port at the same time.
+The commercial team provides the promotions file each week. Place the Excel or CSV file in `inputs/f7_promotions` (mounted at `/opt/inputs/f7_promotions` inside the container). The expected columns are `sku`, `tienda_o_canal`, `descuento_pct`, `fecha_inicio`, and `fecha_fin`. The `f7_promotions_weekly` DAG ingests the file and `POST /api/v1/rabbit/ingest` publishes it to the ingestion queue.
 
-## Apply migrations and run the ingestion and seed steps
+## Verification of the data flow
 
-Run the steps in this order:
-
-```powershell
-uv run alembic upgrade head
-uv run python -m src.ingestion.exchange_rates.main
-uv run python -m src.ingestion.holidays.main
-uv run python -m src.ingestion.promotions.main
-uv run python -m src.simulators.pos_seed.catalog
-uv run python -m src.simulators.pos_seed.main
-uv run python -m src.simulators.marketplace_events.producer --orders 100
-uv run pytest tests/unit
-```
-
-### Execution notes
-
-1. `alembic upgrade head` applies the versioned database migrations.
-2. Exchange-rate ingestion populates `public.exchange_rate` and is required before POS generation.
-3. Holiday ingestion loads the 2026 holiday data for the five operational countries.
-4. Promotion ingestion reads Excel files placed in `data/raw/promotions/`. The expected columns are `sku`, `tienda_o_canal`, `descuento_pct`, `fecha_inicio`, and `fecha_fin`.
-5. The catalog step creates or updates the shared product catalog.
-6. POS generation requires schemas, branches, products, exchange rates, holidays, and promotions for the configured period.
-7. The marketplace producer emits events and does not write them to the POS database, according to the data-processing README.
-
-The README documents `POS_MODE=dev` with 100 sales per country by default and `POS_MODE=full` with 400,000 sales per country by default. Full mode corresponds to 2,000,000 sales across Colombia, Peru, Ecuador, Bolivia, and Chile. Set the mode and dates in `.env` before running the generator.
-
-The generator skips a completed run with the same country, date range, and seed. Changing configuration alone does not regenerate that already completed batch.
+1. Query the Gold views in PostgreSQL (`gold.vw_sales_consolidated`, `gold.vw_stockout_risk_monitoring`, and the rest of the [business-question views](/docs/business-questions/business-questions)).
+2. Check the S3 data lake folders `bronze/`, `silver/`, and `gold/` in the configured bucket.
+3. Inspect the quality metrics table `public.data_quality_metrics` (per load: processed, duplicates, late arrivals, and rejections).

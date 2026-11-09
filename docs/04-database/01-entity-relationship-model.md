@@ -2,9 +2,11 @@
 
 ## 1. Overview
 
-The MercaAndes Entity-Relationship Model (ERM) integrates historical Olist data with complementary information about countries, geolocation, branches, sellers, currencies, exchange rates, and holidays.
+The MercaAndes Entity-Relationship Model (ERM) integrates the historical Olist data with complementary information about countries, geolocation, branches, sellers, currencies, exchange rates, and holidays.
 
-The model follows an evolutionary approach: new entities and relationships are introduced as additional data sources are integrated and new requirements are established.
+The model follows an evolutionary approach: new entities and relationships were introduced as data sources were integrated and requirements were established.
+
+The implementation layer uses the `dim_` prefix for dimensions and the `fact_` prefix for fact tables in the `public` schema of the serving database (PostgreSQL 16). The transactional repositories (Alembic migrations) and the consolidated serving DDL keep the same entity set.
 
 ## 2. Official ER Diagram
 
@@ -22,7 +24,7 @@ The model adopts a Snowflake Schema, organizing information into normalized enti
 
 This approach reduces redundancy, promotes referential integrity, and allows geographic and corporate information to be reused across multiple entities.
 
-The documented model includes entities such as `Customer`, `Seller`, `Branch`, `Geolocation`, `Product`, `Product_Category`, and order-related fact entities.
+The implemented model includes the `dim_geolocation`, `dim_customer`, `dim_seller`, `dim_branch`, `dim_geolocation`, `dim_product`, `dim_product_category`, order and sale fact entities, and the reference dimensions for currencies, exchange rates, sources, countries, and holidays.
 
 The trade-off is that retrieving related information requires joins between tables.
 
@@ -30,117 +32,94 @@ The trade-off is that retrieving related information requires joins between tabl
 
 ### Country
 
-`Country` centralizes country information and distinguishes operational countries from countries retained for historical purposes.
+`dim_country` centralizes country information and distinguishes operational countries from countries retained for historical purposes through `is_operational`.
 
-Documented attributes include:
+Implemented attributes:
 
-- `country_id`
-- `iso_code`
-- `name`
+- `country_id` (UUID)
+- `country_code` (ISO 2-letter code)
+- `country_name`
+- `currency_id` (reference to `dim_currency`)
 - `is_operational`
-- `valid_from`
-- `valid_to`
 
-Brazil remains in the model because of the historical Olist dataset, even though it is not a current MercaAndes operational country.
+Brazil remains in the model because of the historical Olist dataset, even though it is not a MercaAndes operational country.
 
 ### Geolocation
 
-`Geolocation` stores reusable geographic information, including postal-code prefixes, coordinates, city, state, and country reference.
+`dim_geolocation` stores reusable geographic information, including postal-code prefixes, coordinates, city, state, and the country reference.
 
-The same geographic location can be associated with multiple customers and sellers.
+The same geographic location can be associated with multiple customers and sellers (serving database).
 
 ### Branch
 
-`Branch` represents MercaAndes physical stores. It was introduced because the original Olist dataset does not provide an equivalent entity for MercaAndes branches.
+`dim_branch` represents MercaAndes physical stores. It was introduced because the original Olist dataset does not provide an equivalent entity for MercaAndes branches.
 
-A country can have multiple branches.
+A country can have multiple branches; each branch belongs to a country referenced by `country_id`.
 
 ### Seller
 
-A seller may be associated with a physical branch, but this relationship is optional because the marketplace also includes external sellers.
+`dim_seller` distinguishes marketplace sellers and store sellers through `external`. In the serving database a seller can reference a branch through `branch_id` (optional, used for store-owned sellers); the seeded demo data uses country/type groups, and `dim_seller_source_key` maps source-system identifiers to the canonical UUID.
 
-The model uses `branch_id` and `is_external` to represent these cases.
+## 5. Sales and Order Domain
 
-## 5. Order Domain
+### fact_sale and fact_sale_item
 
-### Order and Order_Item
+A sale may contain multiple purchased products; each product line has its own price, quantity, discount, and seller.
 
-An order may contain multiple purchased products. Each product line has its own price, freight, quantity, seller, and other item-level information.
+For this reason, `fact_sale_item` (`dim_product` reference) is modeled separately from `fact_sale`. `fact_sale` keeps a `net_amount` generated column (`gross_amount - discount_amount`), and each item keeps a computed `total_amount` (`quantity*unit_price - discount_amount`). The `status` column tracks the sale state (for example, `COMPLETED`, `RETURNED`, `REFUNDED`, `EXCEPTION_RETURN`), which feeds the returns audit.
 
-For this reason, `Order_Item` is modeled separately from `Order`.
+### fact_order, fact_order_item, and marketplace events
 
-### Seller and Order_Item
+Marketplace orders arrive as lifecycle events (`marketplace_events`, `marketplace_seller_score_events`) consumed through Kafka and the ingestion services. The consolidated model defines the `fact_order` and `fact_order_item` fact tables for the marketplace order domain.
 
-A marketplace order can contain products from different sellers. The seller relationship is therefore assigned to `Order_Item`, not directly to `Order`.
-
-This creates an indirect many-to-many relationship between orders and sellers, resolved through order items.
-
-### Product and Product_Category
-
-`Product_Category` groups products into categories. Each product belongs to a category, while a category can contain multiple products.
-
-### Order_Payment
-
-`Order_Payment` is a separate entity because an order can contain multiple payment records.
-
-### Order_Review
-
-Reviews are optional. An order may have no review or one review, so the documented cardinality is `1:0..1`.
+The seller relationship is assigned at the line level, which creates an indirect many-to-many relationship between orders and sellers.
 
 ## 6. Currency and Exchange Rates
 
-### Currency and Exchange_Rate
+### dim_currency and dim_exchange_rate
 
-`Currency` stores currency information, while `Exchange_Rate` records exchange rates between a base currency and a quoted currency.
-
-Separating these entities avoids repeating currency information across exchange-rate records.
+`dim_currency` stores currency information, while `dim_exchange_rate` records exchange rates per currency, source, and date. A unique constraint `(currency_id, source_id, rate_date)` prevents duplicates.
 
 ### Source Traceability
 
-Each exchange rate references a `Source`, allowing the origin of the rate to be identified.
+Each exchange rate references a `dim_source` record, allowing the origin of the rate (for example, Frankfurter) to be identified.
 
-### Exchange Rate Used by an Order
+### Exchange Rate Used by a Sale
 
-`Order` retains both `currency_code` and `exchange_rate_id`. This preserves the exchange rate associated with the order rather than relying exclusively on the rate currently available.
+Sale and order facts keep `currency_code` together with the transaction date, and the Gold views resolve the exchange rate to USD per date. When a date lacks a rate, `gold.vw_sales_consolidated` applies a documented fallback rate per currency (1.00 for USD; see the [Gold dictionary](05-gold-analytics-dictionary.md)).
 
 ## 7. Holiday Domain
 
-The holiday domain includes `Holiday`, `Holiday_Subdivision`, and `Holiday_Type`.
+The holiday domain includes `dim_holiday`, `dim_holiday_type`.
 
 - A country can have multiple holidays.
-- A holiday can apply to multiple subdivisions within a country.
-- A holiday may have multiple types, such as Public and Bank.
+- A holiday has a primary type (`dim_holiday_type_id`), avoiding confusion between `holiday_id` and the type identifier.
 
-The many-to-many relationship between holidays and types is resolved through `Holiday_Type_Bridge`.
-
-The model also defines `holiday_type_id` as the identifier for `Holiday_Type`, avoiding confusion with `holiday_id`.
+Nager.Date data for CO, PE, EC, BO, and CL seeds these tables. The Gold view `gold.vw_holiday_sales_impact` joins sales dates with the holiday calendar per country.
 
 ## 8. Main Relationship Cardinalities
 
-| Relationship                   | Cardinality                               |
-| ------------------------------ | ----------------------------------------- |
-| Country → Geolocation         | 1:N                                       |
-| Country → Branch              | 1:N                                       |
-| Geolocation → Customer        | 1:N                                       |
-| Geolocation → Seller          | 1:N                                       |
-| Branch → Seller               | 1:N, optional branch for external sellers |
-| Customer → Order              | 1:N                                       |
-| Country → Order               | 1:N                                       |
-| Product_Category → Product    | 1:N                                       |
-| Order → Order_Item            | 1:N                                       |
-| Product → Order_Item          | 1:N                                       |
-| Seller → Order_Item           | 1:N                                       |
-| Order ↔ Seller                | N:M, through Order_Item                   |
-| Order → Order_Payment         | 1:N                                       |
-| Order → Order_Review          | 1:0..1                                    |
-| Currency → Order              | 1:N                                       |
-| Currency → Exchange_Rate      | 1:N in each currency role                 |
-| Source → Exchange_Rate        | 1:N                                       |
-| Exchange_Rate → Order         | 1:N                                       |
-| Country → Holiday             | 1:N                                       |
-| Holiday → Holiday_Subdivision | 1:N                                       |
-| Holiday ↔ Holiday_Type        | N:M, through Holiday_Type_Bridge          |
+| Relationship                       | Cardinality          |
+| --------------------------------- | -------------------- |
+| dim_currency → dim_country          | 1:N                  |
+| dim_country → dim_geolocation       | 1:N                  |
+| dim_country → dim_branch           | 1:N                  |
+| dim_geolocation → dim_customer     | 1:N (optional)       |
+| dim_geolocation → dim_branch       | 1:N (optional)       |
+| dim_country → dim_seller           | 1:N                  |
+| dim_branch → dim_seller            | 1:N, optional (serving database) |
+| dim_customer → fact_sale           | 1:N (optional)       |
+| dim_branch → fact_sale             | 1:N                  |
+| dim_seller → fact_sale             | 1:N                  |
+| fact_sale → fact_sale_item         | 1:N                  |
+| dim_product → fact_sale_item       | 1:N                  |
+| dim_product_category → dim_product | 1:N                  |
+| dim_currency → dim_exchange_rate   | 1:N per source       |
+| dim_source → dim_exchange_rate     | 1:N                  |
+| dim_country → dim_holiday          | 1:N                  |
+| dim_holiday_type → dim_holiday     | 1:N                  |
 
 ## 9. Related Documentation
 
-- [Country Schemas](02-country-schemas.md)
+- [Schemas and Database Organization](02-schemas-organization.md)
+- [Dimensional Model](04-dimensional-model.md)

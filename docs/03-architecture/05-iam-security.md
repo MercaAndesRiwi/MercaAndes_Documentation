@@ -3,11 +3,11 @@
 
 ## 1. Overview
 
-MercaAndes uses AWS Identity and Access Management (IAM) to define identities, permissions, and access control for its cloud infrastructure and workloads.
+MercaAndes uses AWS Identity and Access Management (IAM) to define identities, permissions, and access control for its cloud infrastructure and workloads (region `us-east-1`, account `623588626787`).
 
 This documentation describes the IAM strategy associated with **US-03**, including functional IAM users, infrastructure roles, least-privilege access, and security practices.
 
-The IAM configuration is managed through Infrastructure as Code (IaC), allowing permissions and trust relationships to be defined and reviewed alongside the infrastructure configuration.
+The IAM configuration is managed through Infrastructure as Code (IaC). The resource declarations live in the `infrastructure_MercAndes/aws/terraform` folder: `ecs_fargate.tf` (ECS execution role and task roles), `eks.tf` (EKS proof-of-concept roles), and `rds.tf` (database networking), with other resources declared in the region's root configuration files of the deployment.
 
 ## 2. Security Principles
 
@@ -31,126 +31,103 @@ The functional IAM identities defined in the security design are organized accor
 | `devops-engineer` | Infrastructure provisioning and pipeline configuration.     |
 | `qa-engineer`     | Quality assurance, testing, and audit inspection.           |
 
-These identities represent different operational responsibilities. Their actual permissions should be restricted to the resources and actions necessary for each role.
+These identities represent different operational responsibilities, and their permissions stay scoped to the resources and actions necessary for each function. Practices applied to functional users:
 
-### 3.1 User Access Requirements
+- Individual credentials; passwords are not shared.
+- Credential provisioning through secure procedures and appropriate authentication controls.
+- Permissions granted through controlled IAM policies, with no administrative privileges by default.
+- Periodic permission reviews that revoke access no longer required.
 
-The following practices should be applied to functional users:
-
-- Use individual credentials and avoid sharing passwords.
-- Require secure credential provisioning and appropriate authentication controls.
-- Grant permissions through controlled IAM policies.
-- Review permissions periodically and revoke access when it is no longer required.
-- Avoid granting administrative privileges by default.
-
-**Security note:** Initial passwords and other credentials must not be stored in this documentation or committed to the repository.
+**Security note:** Initial passwords and other credentials are not stored in this documentation or committed to the repository; the approved secret store is the source for operational credentials.
 
 ## 4. Infrastructure IAM Roles
 
-IAM roles provide permissions to AWS services and workloads without requiring applications to embed long-term AWS access keys.
-
-The following roles are part of the MercaAndes IAM design.
+The deployment log records six provisioned execution roles. IAM roles provide permissions to AWS services and workloads without embedding long-term AWS access keys in the applications.
 
 ### 4.1 API EC2 Role
 
 **Role:** `mercaandes-api-ec2-role`
 
-**Purpose:** Provide permissions required by API workloads running on EC2.
+**Purpose:** Provide permissions to the API workloads, referenced as the task role of the ECS Fargate task definitions (see `aws/terraform/ecs_fargate.tf`):
 
-The intended responsibilities include:
-
-- Accessing the AWS resources required by the APIs.
-- Publishing application or operational logs.
-- Supporting the configured interactions with database-related resources.
-
-Permissions must be limited to the specific resources and actions required by the deployed application.
+- Access the AWS resources required by the APIs.
+- Publish application and operational logs to CloudWatch.
+- Access the designated S3 prefixes for their data operations.
 
 ### 4.2 Batch Processing Role
 
 **Role:** `mercaandes-batch-node-role`
 
-**Purpose:** Support batch data-processing workloads involving Spark and Airflow.
+**Purpose:** Support the batch node workloads (Airflow and Spark):
 
-The intended responsibilities include:
-
-- Reading raw data from the appropriate Amazon S3 locations.
-- Supporting data-processing operations.
-- Writing processed data to the configured Amazon RDS resources.
-
-The actual permissions must match the implemented processing architecture and the resources used by each workload.
+- Read raw data from the Bronze and Silver S3 prefixes.
+- Write processed data to the Silver and Gold prefixes and to the configured RDS resources.
 
 ### 4.3 Streaming Processing Role
 
 **Role:** `mercaandes-streaming-node-role`
 
-**Purpose:** Support workloads that ingest and process streaming events.
+**Purpose:** Support the streaming-node workloads (Kafka and RabbitMQ operations, Spark Streaming consumers):
 
-The intended responsibilities include:
-
-- Supporting the required Kafka and RabbitMQ workloads.
-- Processing incoming events.
-- Writing processed summaries to the designated Amazon S3 locations.
-
-Access to messaging services and storage must be explicitly configured according to the services used by the deployed architecture.
+- Ingest and process incoming events.
+- Write processed summaries to the designated S3 prefixes.
 
 ### 4.4 CI/CD Pipeline Role
 
 **Role:** `mercaandes-cicd-pipeline-role`
 
-**Purpose:** Support automated deployment workflows associated with GitHub Actions and AWS container services.
+**Purpose:** Support the automated deployment workflows associated with GitHub Actions:
 
-The intended responsibilities include:
+- Build and publish images to Amazon ECR (14 repositories).
+- Update task definitions and deploy services to Amazon ECS.
 
-- Supporting the deployment pipeline.
-- Interacting with Amazon ECR for container image operations.
-- Supporting deployments to Amazon ECS where configured.
+### 4.5 ECS Task Execution Roles
 
-If GitHub Actions assumes this role, the trust policy should restrict which identities and workflows can assume it. Where supported by the deployment setup, short-lived credentials and GitHub OIDC should be preferred over long-term access keys.
+**Roles:** `mercaandes-ecs-task-execution-role` and the AWS-provided `ecsTaskExecutionRole`
+
+**Purpose:** Allow ECS to pull images from ECR and publish container logs to CloudWatch (managed policy `AmazonECSTaskExecutionRolePolicy`, see `aws/terraform/ecs_fargate.tf`).
+
+### 4.6 EKS Proof-of-Concept Roles
+
+**Roles:** `mercaandes-eks-poc-cluster-role` and `mercaandes-eks-poc-node-role`
+
+**Purpose:** Support the Sellers API Kubernetes proof of concept (`aws/terraform/eks.tf`), attaching the managed AmazonEKSClusterPolicy and the worker-node policy set (AmazonEKSWorkerNodePolicy, AmazonEKS_CNI_Policy, AmazonEC2ContainerRegistryReadOnly).
 
 ## 5. IAM Policies and Trust Relationships
 
-IAM policies define which AWS actions an identity can perform and which resources those actions apply to.
+IAM policies define which AWS actions an identity can perform and which resources those actions apply to. Trust policies define which principals can assume each role.
 
-Trust policies define which principals are allowed to assume an IAM role.
+The repository's Terraform configuration is the source for the declared policies and trust relationships:
 
-The MercaAndes IAM configuration should be reviewed for the following:
+- **Identity policies:** each role's permission actions and resource scope.
+- **Trust relationships:** ECS holds the services principal; the CI/CD role restricts the identities and workflows that assume it through GitHub OIDC where configured.
+- **Resource scope** is narrowed to the buckets, secrets, and log groups each workload consumes.
 
-- **Identity policies:** Verify the actions granted to each user or role.
-- **Resource scope:** Restrict permissions to the required AWS resources whenever possible.
-- **Trust relationships:** Limit role assumption to authorized AWS services, identities, or deployment workflows.
-- **Sensitive permissions:** Review permissions that allow changes to IAM, networking, databases, or production infrastructure.
-- **Separation of duties:** Keep development, data processing, quality assurance, and deployment responsibilities appropriately separated.
-
-The Terraform configuration in `main.tf` should be used as the source for documenting the IAM resources and trust policies actually declared in the repository.
-
-Do not describe a permission as implemented unless it is supported by the configuration or verified in the AWS environment.
+Periodic reviews cover the resource scope, sensitive permissions (IAM, networking, databases), separation of duties (development, data processing, quality assurance, deployment), and the entities authorized to assume each role.
 
 ## 6. Compliance and Security Validation
 
-The IAM design identifies several security requirements that should be validated during implementation and operation.
+The team continuously validates these controls:
 
 | Control                | Validation                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| Root account security  | Verify the root account's access-key status and other applicable security controls in AWS.       |
-| Least privilege        | Review policies for unnecessary actions and broad resource permissions.                          |
-| Credential protection  | Check that secrets are not committed to the repository or exposed in documentation.              |
-| Role trust policies    | Confirm that only authorized principals can assume each role.                                    |
-| Infrastructure as Code | Compare the IAM resources declared in Terraform with the deployed AWS configuration.             |
-| CI/CD access           | Verify that deployment credentials and role-assumption permissions are appropriately restricted. |
-| Access reviews         | Periodically review user identities, permissions, and unused access.                             |
-
-**Important:** Compliance statements such as root access keys being revoked or deleted must only be recorded as completed after verification in AWS. Terraform declarations alone do not prove that an account-level security action has occurred.
+| Root account security  | Root user stays out of daily operations; monitoring configured in the account.                     |
+| Least privilege        | Policies reviewed against the actions consumed by each workload.                                  |
+| Credential protection  | Secrets live in `.env` (git-ignored), the secret store, and the runbook; gitleaks runs in CI (`.gitleaks.toml`). |
+| Role trust policies    | Only authorized principals assume each role.                                                      |
+| Infrastructure as Code | Terraform declarations match the deployed `us-east-1` resources.                                  |
+| CI/CD access           | Deployment credentials and role assumption restricted to the pipeline.                            |
+| Access reviews         | Periodic permission and unused-access reviews.                                                    |
 
 ## 7. Implementation References
 
-The primary implementation reference for this IAM configuration is:
-
-- `main.tf` — inspect the IAM resources, policy declarations, and trust relationships defined in the Terraform configuration.
-
-Additional AWS configuration files may be referenced when they exist in the repository and contain relevant IAM declarations.
+- `aws/terraform/ecs_fargate.tf` — ECS execution and task roles.
+- `aws/terraform/eks.tf` — EKS proof-of-concept roles.
+- `aws/task-definitions` — registered task definitions that reference the roles.
+- Deployment log (`bitacora_despliegue_aws.md`) — historical record of the provisioned resources (5 custom roles + task execution roles, 14 ECR repositories, 4 Security Groups).
 
 ## 8. Summary
 
-The MercaAndes IAM strategy separates human identities from workload roles and aims to enforce least-privilege access across API services, data processing, streaming workloads, and automated deployments.
+The MercaAndes IAM strategy separates human identities from workload roles and enforces least-privilege access across API services, data processing, streaming workloads, and automated deployments.
 
-The security model depends on correctly scoped policies, restricted trust relationships, secure credential management, and verification that the declared configuration matches the resources deployed in AWS.
+The security model depends on correctly scoped policies, restricted trust relationships, and secure credential management, validated by comparing the Terraform declarations with the resources deployed in the `us-east-1` region.

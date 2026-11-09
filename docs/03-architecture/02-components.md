@@ -1,4 +1,4 @@
-# Architecture Components
+﻿# Architecture Components
 
 ## 1. Overview
 
@@ -8,33 +8,43 @@ Each component has a defined responsibility within the data platform. Their inte
 
 ## 2. Data Sources and Ingestion
 
-### 2.1. POS Sales Simulator (F2)
+### 2.1. POS Sales Generator (F2)
 
-The POS Sales Simulator generates reproducible point-of-sale sales data for the operational countries.
+The `Transactional-POS-database` repository provides the Alembic migrations and the seeding CLI that populate the transactional POS model. It generates shared catalogs (currencies, countries, holidays, products, categories, branches, sellers, sources), customers, and point-of-sale sales for the five operational countries, with exchange rates from Frankfurter and holidays from Nager.Date. Its Docker image (`pos-database`) runs inside the Compose stack on startup.
 
-Its purpose is to provide sales records that can be used to populate the country's transactional databases and support downstream processing.
+### 2.2. Inventory & Sellers API (F3)
 
-### 2.2. Inventory Simulator (F3)
+The `Inventory_Api` repository exposes the seller catalog and inventory queries over the serving database:
 
-The Inventory Simulator provides inventory-related functionality through simulated APIs and catalog-based stock calculations.
+- `GET /api/v1/sellers` list sellers (paginated).
+- `GET /api/v1/sellers/{seller_id}` seller detail.
+- `GET /api/v1/sellers/{seller_id}/score` seller score written by the weekly Spark job.
+- `GET /api/v1/sellers/{seller_id}/inventory` and `/inventory/{sku}` inventory per seller and SKU.
+- `GET /api/v1/inventory/stock` stock level queries.
 
-It supports the generation and consultation of inventory information within the project.
+The `MercaAndes_Mock_Inventory_API` repository simulates the third-party inventory feed with pagination, token authentication, and controlled HTTP 429/503 responses.
 
-### 2.3. Marketplace Events (F4)
+### 2.3. Marketplace API (F4)
 
-The marketplace component represents order lifecycle events, including order creation, payment, shipment, delivery, cancellation, and returns.
+The `Marketplace_Api` repository provides the order-event simulator and the customer purchase flow:
 
-These events are relevant to the target event-streaming architecture.
+- `POST /api/v1/marketplace/events` generates lifecycle events (created, paid, shipped, delivered, canceled, returned) with configurable duplicates and out-of-order delays.
+- `POST /api/v1/marketplace/purchase` simulates a purchase and publishes a `PURCHASE_CONFIRMED` notification to RabbitMQ.
+- `GET /api/v1/marketplace/orders/{order_id}/timeline` returns the order status and its event timeline.
 
-### 2.4. Supporting Data Ingestion
+### 2.4. Promotions API (F7)
 
-Supporting datasets provide additional context for commercial analysis.
+The `f7-weekly-promotions` service inside `infrastructure_MercAndes` reads the weekly Excel/CSV file from the `inputs/f7_promotions` mount and exposes:
 
-The project materials identify the following ingestion processes:
+- `GET /health` service health.
+- `POST /api/v1/promotions/ingest` validates and ingests the promotions file, writes the `gold_promotions_audit` results, and creates silent-store alerts.
+- `POST /api/v1/rabbit/ingest` publishes the file payload to the `mercaandes.promotions.weekly.ingest` queue for asynchronous ingestion.
 
-- **Exchange rates:** historical exchange-rate information obtained from the Frankfurter API.
-- **Public holidays:** holiday information obtained from the Nager.Date API.
-- **Promotions:** weekly promotion data loaded from Excel files after validation.
+### 2.5. Supporting Data Ingestion
+
+- **Exchange rates:** the `api-exchange-rates` repository ingests rates from the Frankfurter API into the currency tables; its Docker image runs as the `exchange-rates-seed` service.
+- **Holidays:** the `api-holidays` repository ingests holiday data for CO, PE, EC, BO, and CL from the Nager.Date API; its Docker image runs as the `holidays-seed` service.
+- **Reports service:** the `operational-messaging` service exposes `POST /api/v1/reports` to schedule commercial reports through RabbitMQ.
 
 ## 3. Batch Layer
 
@@ -42,17 +52,15 @@ The Batch Layer processes historical data through scheduled workflows.
 
 ### Apache Airflow
 
-Apache Airflow defines, schedules, and monitors DAGs and their dependencies.
+Apache Airflow 3.1.5 runs six DAGs: historical load, bronze-to-silver cleaning, silver-to-gold business rules, weekly seller scoring, weekly promotions, and partitioned reprocessing. The CeleryExecutor uses RabbitMQ as broker and PostgreSQL as result backend.
 
 ### Apache Spark
 
-Apache Spark executes data-processing jobs over historical datasets.
+Apache Spark 3.5 executes the batch jobs: the weekly seller-score calculation (`seller_scoring`) and the Gold business-rule tasks. Jobs read and write PostgreSQL through JDBC and export Gold tables to S3 for Athena.
 
-It processes data across the Bronze, Silver, and Gold data layers.
+### Amazon S3 and Amazon RDS for PostgreSQL
 
-### Amazon S3
-
-Amazon S3 provides the storage foundation for the data lake. It stores datasets as they progress through the Medallion layers.
+S3 stores the Bronze, Silver, and Gold datasets of the data lake. RDS PostgreSQL serves the transactional POS data, the shared dimensions and facts, and the analytical `silver`/`gold` views.
 
 ## 4. Speed Layer
 
@@ -60,77 +68,65 @@ The Speed Layer supports continuous event ingestion and near-real-time processin
 
 ### Apache Kafka
 
-Apache Kafka serves as the event-streaming backbone. It receives and distributes event data to downstream consumers.
-
-Its persistent event log supports replaying events when reprocessing is required.
+Kafka transports the marketplace event stream (topic `mercaandes.orders.events`, 3 partitions, 7-day retention). The Kafdrop UI at port 9000 allows topic inspection.
 
 ### RabbitMQ
 
-RabbitMQ handles operational messaging, notifications, background tasks, and asynchronous work. Kafka provides the event-streaming backbone.
+RabbitMQ handles operational messaging: purchase notifications (`mercaandes.notifications.purchase`), weekly promotions ingestion (`mercaandes.promotions.weekly.ingest`), and silent-store alerts (`mercaandes.alerts.silent-store`). The management console runs at port 15672.
 
-### Spark Streaming
+### Spark Workers and Consumers
 
-Spark Streaming processes incoming event streams in micro-batches.
-
-Batch and streaming workloads use Spark processing where applicable.
+The `seller-score-ingestion` consumer keeps the Silver seller-score inputs synchronized with the event stream, and Airflow Spark workers maintain the `hot_inventory_risk` table for near-real-time stock risk.
 
 ## 5. Serving Layer
 
 ### Amazon RDS for PostgreSQL
 
-Amazon RDS for PostgreSQL serves structured relational data and aggregated datasets for operational consumption.
+RDS PostgreSQL 16 (`mercaandes-postgres-gold`) serves transactional and curated data for operational consumption. See the [data model](/docs/database/schemas-organization) for its schemas.
 
-The target infrastructure places the database in private data subnets.
+### Amazon Athena and AWS Glue
 
-### Amazon Athena
-
-Amazon Athena provides serverless SQL queries over datasets stored in Amazon S3.
-
-It complements the relational serving database by supporting analytical queries directly over data lake storage.
+AWS Glue Data Catalog registers the Gold datasets exported to S3, and Amazon Athena executes SQL queries over them.
 
 ## 6. Analytics Layer
 
 ### Power BI
 
-Power BI supports business intelligence dashboards, executive reporting, and analysis of business metrics.
-
-RDS serves curated relational data, while Athena supports exploratory analysis over the data lake.
+Power BI consumes the seven official `gold` views as the source of the commercial dashboard. Each view answers one [business question](/docs/business-questions/business-questions).
 
 ### Metabase
 
-Metabase provides an interface for data exploration and ad hoc queries, making analytical information accessible to business users.
+Metabase offers data exploration and ad hoc queries over the serving database and the data lake.
 
 ## 7. Infrastructure Components
 
 ### Amazon VPC and Security Groups
 
-Amazon VPC provides network isolation. Public and private subnets separate internet-facing resources from internal processing and data services.
-
-Security Groups control communication between resources.
+Amazon VPC provides network isolation with public and private subnets. Security Groups control communication: `mercaandes-sg-rds` (5432), `mercaandes-sg-alb-apis` (80/8000), and the batch/streaming node groups.
 
 ### AWS IAM
 
-AWS IAM manages permissions for services and workloads. The design follows the principle of least privilege.
+IAM roles provide workload permissions: API EC2 role, batch node, streaming node, CI/CD pipeline, and the ECS task execution role. See [IAM and security](05-iam-security.md).
 
 ### Docker and Amazon ECR
 
-Docker packages applications and processing jobs into containers. Amazon ECR stores private container images used by the deployment infrastructure.
+Docker packages applications and jobs into containers. Amazon ECR stores 14 private image repositories, from the APIs to the node images. The image catalog and build workflow are described in the [AWS infrastructure](aws-infrastructure.md#amazon-ecr) page.
 
-### Amazon ECS, EC2, and Fargate
+### Amazon ECS with Fargate and EC2
 
-Amazon ECS orchestrates containerized workloads. Amazon EC2 and AWS Fargate provide compute capacity for designated workloads.
+ECS (cluster `mercaandes-ecs-cluster`) runs the three customer-facing APIs on Fargate tasks with public IPs and health checks (`/health`, port 8000). Airflow, Spark, Kafka, and RabbitMQ run on the EC2 batch and streaming nodes.
 
 ## 8. Component Interactions
 
 The platform follows this general interaction sequence:
 
-1. Simulators, historical datasets, and external sources provide data.
-2. Ingestion components collect and validate source information.
-3. Batch workflows and streaming consumers process data through their respective execution paths.
-4. Amazon S3 stores data lake datasets across the Medallion layers.
-5. Amazon RDS and Athena provide access to structured and lake-based data.
-6. Power BI and Metabase consume datasets for reporting and analysis.
+1. Seeding images populate the POS database; the Olist loader and promotions service land raw data in S3 Bronze.
+2. Spark jobs and the AWS ingests move data through Silver cleaning and Gold business rules.
+3. The Marketplace API publishes events to Kafka; the purchase flow publishes to RabbitMQ.
+4. Consumers (seller-score ingestion, notification worker, reports worker) process messages.
+5. Gold results live in RDS views and S3 Gold folders registered in Glue.
+6. Power BI and Metabase consume the Gold views; Athena supports ad hoc lake queries.
 
-For the API documentation links and the deployed purchase-notification demonstration, see [Deployed APIs and operational consoles](06-services-apis.md).
+For the API documentation links and the deployed purchase-notification flow, see [Deployed APIs and operational consoles](06-services-apis.md).
 
-For infrastructure details, see [Infrastructure and Deployment](03-infrastructure.md). For the rationale behind the architecture, see [Technical Decisions](04-technical-decisions.md).
+For infrastructure details, see [AWS Infrastructure and Costs](aws-infrastructure.md). For the rationale behind the architecture, see [Technical Decisions](04-technical-decisions.md).

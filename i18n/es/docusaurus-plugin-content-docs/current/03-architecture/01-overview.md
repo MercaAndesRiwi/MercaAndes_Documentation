@@ -1,100 +1,109 @@
----
-title: Visión general de la arquitectura
-description: Patrones, capas y flujo general de datos de MercaAndes.
----
+# Descripción general de la arquitectura
 
-# Visión general de la arquitectura
+## 1. Descripción general
 
-## 1. Resumen
+MercaAndes Omnicanal es una plataforma de datos que integra y procesa información de múltiples fuentes para soportar ventas, inventario y analítica del marketplace en los cinco países operativos.
 
-MercaAndes está concebida como una plataforma de datos que integra y procesa información de varias fuentes para apoyar el análisis de ventas, inventario y marketplace en distintos países.
+La arquitectura combina la **Arquitectura Lambda** y la **Arquitectura Medallón**. Este enfoque separa el procesamiento histórico por lotes del procesamiento de flujos casi en tiempo real, organizando los datos según su nivel de transformación y calidad.
 
-La arquitectura combina los patrones **Lambda** y **Medallion**. Lambda separa el procesamiento histórico por lotes del procesamiento de eventos casi en tiempo real; Medallion organiza los datos según su nivel de transformación y calidad. La infraestructura utiliza servicios de AWS y cargas contenerizadas para ingesta, procesamiento, orquestación, almacenamiento y análisis.
-
+La infraestructura usa servicios de AWS y cargas de trabajo contenerizadas para soportar la ingesta, el procesamiento, la orquestación, el almacenamiento y la analítica en la región `us-east-1`.
 
 ## 2. Diagrama de arquitectura
 
-El diagrama presenta las fuentes, capas de procesamiento, almacenamiento y consumo analítico.
+El siguiente diagrama presenta la arquitectura de alto nivel, incluyendo fuentes de datos, capas de procesamiento, almacenamiento y consumo analítico.
 
-![Diagrama general de la arquitectura de MercaAndes](image/overview/1792105168989.jpg)
+![1792105168989](image/overview/1792105168989.jpg)
 
-El flujo conecta la ingesta con la transformación, el almacenamiento y el consumo, manteniendo separadas las responsabilidades de cada capa.
+La arquitectura separa responsabilidades de procesamiento mientras conecta la ingesta de datos, la transformación, el almacenamiento y la analítica.
 
 ## 3. Patrones arquitectónicos
 
 ### 3.1. Arquitectura Lambda
 
-Lambda contempla dos rutas lógicas de procesamiento.
+El enfoque Lambda divide el procesamiento de datos en dos capas lógicas.
 
-**Capa batch:** procesa datos históricos mediante flujos programados. Apache Airflow coordina las ejecuciones y Apache Spark realiza las transformaciones y el procesamiento por lotes.
+**Capa de lotes (Batch)**
 
-**Capa de velocidad:** procesa eventos entrantes para ofrecer visibilidad operativa casi en tiempo real. Apache Kafka distribuye eventos, RabbitMQ gestiona mensajería operativa y Spark Streaming procesa flujos en micro lotes.
+Procesa datos históricos mediante workflows programados. Apache Airflow orquesta los workflows (carga histórica, limpieza, reglas de negocio, seller scoring y promociones semanales), mientras que Apache Spark ejecuta las transformaciones por lotes vía JDBC y S3.
 
-### 3.2. Arquitectura Medallion
+**Capa de velocidad (Speed)**
 
-El patrón Medallion organiza los datos del lago en tres niveles:
+Procesa eventos entrantes para soportar visibilidad operativa casi en tiempo real. Apache Kafka transporta los eventos de pedidos del marketplace (tópic `mercaandes.orders.events`), RabbitMQ gestiona la mensajería operativa y las notificaciones, y Spark Streaming procesa el stream de pedidos en microlotes hacia la tabla `hot_inventory_risk`.
 
-| Capa | Propósito |
-|---|---|
-| Bronze | Conserva los datos recibidos de las fuentes, con mínima transformación. |
-| Silver | Guarda datos limpios, validados, estandarizados y sin duplicados. |
-| Gold | Contiene datos enriquecidos, modelados y agregados para el negocio. |
+### 3.2. Arquitectura Medallón
 
-La progresión entre capas facilita el control de calidad y la trazabilidad desde los datos de origen hasta la información lista para análisis.
+El patrón Medallón organiza los datos en tres niveles de madurez dentro del lago de datos en Amazon S3.
 
-## 4. Capas principales
+| Capa   | Propósito                                                              |
+| ------ | ---------------------------------------------------------------------- |
+| Bronze | Conserva los datos originales de los sistemas fuente (dataset Olist, archivos de promociones, eventos crudos de marketplace). |
+| Silver | Contiene datos limpiados, validados, estandarizados y depurados de duplicados. |
+| Gold   | Contiene datos enriquecidos, modelados y agregados para el consumo del negocio. |
 
-### 4.1. Fuentes e ingesta
+La capa de servicio reproduce la misma separación en PostgreSQL: el esquema `silver` contiene vistas curadas y anonimizadas, y el esquema `gold` contiene las vistas oficiales de Power BI. Los DAGs de procesamiento también trabajan con los esquemas de staging `z1_silver` y `z2_gold` durante sus ejecuciones.
 
-La plataforma integra conjuntos históricos, APIs externas y fuentes comerciales simuladas. Incluye ventas POS, funcionalidades de inventario, eventos de marketplace y datos complementarios, como tasas de cambio, festivos y promociones.
+## 4. Capas principales de la arquitectura
 
-Los procesos de ingesta recopilan y cargan la información necesaria para el procesamiento posterior.
+### 4.1. Fuentes de datos e ingesta
+
+La plataforma recibe datos de datasets históricos, APIs externas y fuentes comerciales simuladas.
+
+- Las ventas POS se siembran en la capa de servicio PostgreSQL y fluyen por los pipelines de tópicos por país.
+- El dataset histórico de Olist se carga una vez (DAG `f1_kaggle_historical`).
+- Las tasas de cambio provienen de la API Frankfurter y los festivos de la API Nager.Date.
+- Los eventos de marketplace se generan mediante la Marketplace API y se publican en Kafka.
+- Las promociones llegan como archivos Excel semanales procesados por el servicio F7.
 
 ### 4.2. Procesamiento y orquestación
 
-- **Apache Airflow** define, programa y supervisa los flujos de trabajo.
-- **Apache Spark** ejecuta transformaciones de datos.
-- **Apache Kafka** transporta eventos.
-- **RabbitMQ** distribuye mensajes operativos asíncronos.
-- **Spark Streaming** procesa flujos entrantes en micro lotes.
+- **Apache Airflow 3.1.5** define, programa y monitorea seis DAGs (incluido el DAG de reprocesamiento particionado).
+- **Apache Spark 3.5** ejecuta las transformaciones por lotes (seller score, reglas de negocio) tanto en su cluster como en tareas JDBC de Airflow.
+- **Apache Kafka** transporta pedidos en streaming con 3 particiones y 7 días de retención.
+- **RabbitMQ** gestiona notificaciones, ingesta semanal de promociones, alertas y reportes asíncronos.
+- **Spark Streaming** detecta quiebres inminentes en microlotes.
 
 ### 4.3. Almacenamiento y servicio
 
-**Amazon S3** almacena el lago de datos en las capas Bronze, Silver y Gold.
+**Amazon S3** provee el lago de datos para las capas Bronze, Silver y Gold (bucket `mercaandes-data-lake-<account>`).
 
-**Amazon RDS para PostgreSQL** ofrece almacenamiento relacional para datos estructurados de servicio y consumo operativo.
+**Amazon RDS para PostgreSQL 16** provee la capa de servicio relacional: datos transaccionales POS por país, dimensiones y hechos compartidos, y las vistas analíticas Silver/Gold del tablero de negocio.
 
-**Amazon Athena** permite ejecutar consultas SQL sobre conjuntos almacenados en S3.
+**Amazon Athena** permite consultas SQL sobre los datasets catalogados en el AWS Glue Data Catalog y almacenados en S3.
 
 ### 4.4. Analítica y consumo
 
-**Power BI** ofrece tableros e informes ejecutivos y **Metabase** permite explorar datos y ejecutar consultas ad hoc. Cada herramienta accede a las fuentes mediante sus permisos configurados.
+- **Power BI** consume las vistas `gold` de la capa de servicio como fuente oficial del tablero comercial.
+- **Metabase** se utiliza para la exploración de datos y consultas ad hoc.
 
 ## 5. Infraestructura y seguridad
 
-El diseño usa servicios de AWS para aislar las cargas y controlar el acceso:
+La infraestructura corre en AWS en `us-east-1`:
 
-- **Amazon VPC** proporciona una red aislada.
-- **Subredes públicas y privadas** separan los recursos expuestos a internet de los servicios internos y de datos.
-- **AWS IAM** gestiona permisos con el principio de privilegio mínimo.
-- **Security Groups** limitan las comunicaciones entre recursos.
-- **Amazon ECR** almacena imágenes privadas de contenedores.
-- **Amazon ECS** coordina cargas contenerizadas.
-- **Amazon EC2 y AWS Fargate** aportan capacidad de cómputo para cargas designadas.
+- **Amazon VPC:** subredes públicas y privadas distribuidas entre zonas de disponibilidad.
+- **Security Groups:** `mercaandes-sg-rds` (5432), `mercaandes-sg-alb-apis` (80, 8000) y los grupos de los nodos batch y streaming.
+- **Roles IAM:** rol API EC2, nodo batch, nodo streaming, pipeline CI/CD y el rol de ejecución de tareas ECS.
+- **Amazon ECR:** registro privado de imágenes (14 repositorios listados en el [catálogo de imágenes](aws-infrastructure)).
+- **Amazon ECS con Fargate:** las APIs Inventory, Marketplace y Promotions (cluster `mercaandes-ecs-cluster`).
+- **Amazon EC2:** aloja el nodo batch (Airflow + Spark) y el nodo streaming (Kafka + RabbitMQ).
+- **Amazon RDS para PostgreSQL:** la base de datos de servicio Gold (`mercaandes-postgres-gold`).
 
-El diseño ubica los servicios internos de procesamiento y las bases de datos en segmentos privados, con acceso controlado entre componentes.
+Los detalles y los drivers de costo están descritos en [Infraestructura AWS y costos](aws-infrastructure).
 
 ## 6. Flujo general de datos
 
-1. Los simuladores y las fuentes externas generan o proporcionan datos.
-2. Los procesos de ingesta recopilan y validan la información recibida.
-3. Los componentes batch y de streaming procesan los datos según su flujo.
-4. Amazon S3 almacena los conjuntos en las capas Bronze, Silver y Gold.
-5. Amazon RDS para PostgreSQL y Athena permiten consultar datos relacionales y del lago.
-6. Power BI y Metabase consumen información para análisis e informes.
+La plataforma sigue este flujo general:
+
+1. Los datos se generan con simuladores o se obtienen de fuentes externas.
+2. Los procesos de ingesta siembran la base de datos, cargan la capa S3 Bronze y publican eventos a Kafka y RabbitMQ.
+3. Los workflows por lotes (Airflow + Spark) procesan los datos por las reglas Silver y Gold; los consumidores streaming mantienen las tablas de riesgo en caliente.
+4. Amazon S3 almacena los datasets en las capas Bronze, Silver y Gold, particionados para Athena.
+5. Amazon RDS para PostgreSQL sirve las vistas operativas y analíticas.
+6. Power BI y Metabase consumen las vistas Gold para analítica y reportes.
 
 ## 7. Documentación relacionada
 
-- [Componentes de arquitectura](02-components.md)
+- [Componentes de la arquitectura](02-components.md)
+- [Infraestructura AWS y costos](aws-infrastructure)
 - [Decisiones técnicas](04-technical-decisions.md)
-- [IAM y seguridad](05-iam-security.md)
+
+Para la configuración del entorno y las instrucciones de ejecución, consulta la sección de Instalación y despliegue.

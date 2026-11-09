@@ -110,4 +110,5 @@ El modelo define `holiday_type_id` como identificador de `Holiday_Type`, para ev
 
 ## 9. Documentación relacionada
 
-- [Esquemas por país](02-country-schemas.md)
+- [Esquemas y organización de la base de datos](02-schemas-organization.md)
+- [Modelo dimensional](04-dimensional-model.md)

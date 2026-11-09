@@ -1,20 +1,21 @@
 ---
+id: prerequisites
 title: Requisitos previos
-description: Herramientas necesarias para el entorno local de desarrollo de MercaAndes.
+sidebar_position: 1
+description: Herramientas y recursos necesarios para ejecutar la plataforma local de MercaAndes.
 ---
 
 # Requisitos previos
 
-El entorno local de MercaAndes usa Docker Compose para los servicios de plataforma y `uv` para el entorno Python de procesamiento de datos.
+La plataforma local de MercaAndes se ejecuta con Docker Compose desde el repositorio `infrastructure_MercAndes`. Instala y verifica:
 
-Antes de comenzar, instala y verifica lo siguiente:
+- **Docker Desktop** o Docker Engine con Docker Compose v2, con WSL2 habilitado en Windows.
+- **Git** para clonar los repositorios.
+- **Python 3.13 o superior** junto con [`uv`](https://docs.astral.sh/uv/) si quieres ejecutar servicios, pruebas o scripts de semillas desde los repositorios sin contenedores.
+- **PowerShell** para el script de prueba de humo y los comandos de Windows documentados.
+- Acceso a la red para que los contenedores alcancen las APIs externas de Frankfurter y Nager.Date, y (opcionalmente) AWS para los recursos de S3 y RDS.
 
-- Python 3.13 o posterior.
-- [`uv`](https://docs.astral.sh/uv/) para gestionar las dependencias y los entornos virtuales de Python.
-- Docker Desktop o Docker Engine con Docker Compose.
-- Acceso a internet para consultar tasas de cambio y festivos en las APIs externas.
-- PowerShell para ejecutar el script de comprobación de infraestructura y los comandos documentados para Windows.
+## Requisitos de recursos
 
-El primer inicio de la infraestructura descarga varias imágenes grandes. El README de infraestructura estima aproximadamente 5 GB, incluida la imagen de Airflow.
-
-Estas herramientas corresponden al flujo local de desarrollo. Para el estado y la arquitectura de AWS, consulta [Infraestructura y arquitectura de despliegue](../03-architecture/03-infrastructure.md).
+- Al menos 8 GB de RAM; se recomiendan 16 GB al ejecutar todos los contenedores simultáneamente.
+- Aproximadamente 5 GB de disco para la primera descarga de imágenes, más para las compilaciones de Spark y Airflow.

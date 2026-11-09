@@ -1,123 +1,102 @@
----
-title: Decisiones técnicas
-description: Decisiones arquitectónicas aceptadas, fundamentos y consecuencias para MercaAndes.
----
-
 # Decisiones técnicas
 
 ## 1. Propósito
 
-Esta página resume las decisiones de arquitectura documentadas para MercaAndes, su fundamento y sus consecuencias.
+Esta página registra las decisiones arquitectónicas principales documentadas para MercaAndes, con su razón y sus consecuencias. El documento de arquitectura aceptado data del 4 de octubre de 2026 y el plan de despliegue de infraestructura del 9 de octubre de 2026. Los registros de ingeniería detallados viven en la carpeta `infrastructure_MercAndes/docs` (ADR-013 definiciones de tareas Fargate, ADR-014 capa de servicio RDS, ADR-016 Fargate vs EKS, además de las notas de Kafka, RabbitMQ y manejo de eventos tardíos).
 
-Las decisiones corresponden al documento de arquitectura aceptado el 4 de octubre de 2026 y al plan de infraestructura aceptado el 9 de octubre de 2026. Registran el diseño aprobado, pero no confirman por sí solas la implementación de cada componente.
+## 2. Arquitectura Lambda combinada con Medallón
 
-## 2. Lambda combinada con Medallion
+**Estado:** Aceptada e implementada
 
-**Estado:** Aceptada
+**Decisión:** Combinar Arquitectura Lambda con el patrón de organización Medallón.
 
-**Decisión:** combinar la arquitectura Lambda con la organización Medallion.
+**Razón:** El enfoque Lambda separa el procesamiento histórico del procesamiento de eventos casi en tiempo real, para que la plataforma cubra tanto las transformaciones históricas completas como la ingesta continua de eventos. El patrón Medallón organiza los datos en capas Bronze, Silver y Gold para soportar mejoras progresivas de calidad y transformaciones orientadas al negocio.
 
-**Fundamento:** Lambda separa el procesamiento histórico por lotes del procesamiento de eventos casi en tiempo real. Medallion organiza los datos en Bronze, Silver y Gold para reflejar mejoras progresivas de calidad y transformaciones orientadas al negocio.
+**Consecuencias en la implementación:**
 
-**Consecuencias:**
-
-- Las cargas históricas y de streaming tienen responsabilidades diferenciadas.
-- Las capas Bronze, Silver y Gold representan la madurez de los datos.
-- Es necesario coordinar la lógica y consistencia entre las rutas batch y de streaming.
+- Los workloads batch y streaming corren en nodos separados (nodo batch vs nodo streaming).
+- La madurez de los datos se representa dos veces: en S3 (lago) y en PostgreSQL (`silver`/`gold`).
+- La cadena batch está implementada por el conjunto de DAGs; la capa de velocidad por los consumidores de Kafka.
 
 ## 3. Amazon S3 como lago de datos
 
-**Estado:** Aceptada
+**Estado:** Aceptada e implementada
 
-**Decisión:** utilizar Amazon S3 para almacenar datos en las capas Bronze, Silver y Gold.
+**Decisión:** Usar Amazon S3 para almacenar los datos en las capas Bronze, Silver y Gold.
 
-**Fundamento:** S3 proporciona almacenamiento de objetos durable y escalable para información histórica y conjuntos analíticos.
+**Razón:** S3 provee almacenamiento de objetos duradero y escalable para datasets históricos y analíticos.
 
-**Consecuencias:**
+**Consecuencias en la implementación:**
 
-- Los datos originales y transformados se pueden organizar por capa.
-- Las herramientas analíticas pueden consultar los conjuntos compatibles mediante Athena.
-- La implementación debe definir formatos, particionamiento, políticas de ciclo de vida y permisos.
+- El bucket contiene los prefijos `bronze/`, `silver/` y `gold/`, con las exportaciones Gold escritas como carpetas `gold/{table}/{table}.csv` para el particionamiento de Athena.
+- El versioning está habilitado y las políticas IAM acotan el acceso por prefijo.
+- Athena lee los datasets Gold registrados en el Glue Data Catalog.
 
-## 4. Kafka y RabbitMQ con responsabilidades distintas
+## 4. Kafka y RabbitMQ con responsabilidades de mensajería distintas
 
-**Estado:** Aceptada
+**Estado:** Aceptada e implementada
 
-**Decisión:** utilizar Apache Kafka para el flujo de eventos y RabbitMQ para mensajería operativa y tareas asíncronas.
+**Decisión:** Usar Apache Kafka para el streaming de eventos y RabbitMQ para la mensajería operativa y las tareas asíncronas.
 
-**Fundamento:** Kafka ofrece un flujo persistente para consumidores de datos; RabbitMQ gestiona entregas operativas, procesos de fondo y notificaciones de control.
+**Razón:** Kafka provee un stream de eventos persistente y reproducible para los consumidores de datos; RabbitMQ soporta la entrega de mensajes operativos, notificaciones y tareas en segundo plano.
 
-**Consecuencias:**
+**Consecuencias en la implementación:**
 
-- El streaming y la mensajería operativa tienen responsabilidades separadas.
-- Cada productor y consumidor debe conectarse al sistema de mensajería que corresponda.
-- Se deben definir monitoreo, reintentos, manejo de errores y garantías de procesamiento.
+- Los pedidos del marketplace fluyen por el tópic Kafka `mercaandes.orders.events` (3 particiones, retención de 7 días).
+- RabbitMQ gestiona las colas `mercaandes.notifications.purchase`, `mercaandes.promotions.weekly.ingest` y `mercaandes.alerts.silent-store`, con durabilidad y manejo de dead-letter documentado en el repositorio de infraestructura.
+- Ambos brokers corren en el nodo streaming (IP privada `10.0.11.155`).
 
-## 5. Amazon RDS y Athena como servicios complementarios
+## 5. Amazon RDS y Athena como tecnologías de servicio complementarias
 
-**Estado:** Aceptada
+**Estado:** Aceptada e implementada
 
-**Decisión:** utilizar Amazon RDS para PostgreSQL y Amazon Athena en cargas de acceso distintas.
+**Decisión:** Usar Amazon RDS para PostgreSQL y Amazon Athena para workloads de acceso a datos distintos.
 
-**Fundamento:** RDS ofrece acceso relacional a datos estructurados para consumo operativo y de negocio. Athena ejecuta consultas SQL directamente sobre los datos almacenados en S3, separando las consultas analíticas grandes de las cargas transaccionales.
+**Razón:** RDS provee acceso relacional para el consumo operativo y de tablero; Athena soporta SQL sobre el lago sin competir con las cargas transaccionales.
 
-**Consecuencias:**
+**Consecuencias en la implementación:**
 
-- Los datos relacionales curados pueden servirse mediante PostgreSQL.
-- Los conjuntos compatibles del lago pueden explorarse con Athena.
-- Se deben configurar sincronización, definiciones de tablas, rendimiento y permisos.
+- La base de servicio (`merca_pos`) aloja los esquemas POS transaccionales, el modelo dimensional consolidado y las vistas Silver/Gold.
+- Las exportaciones Gold aterrizan en S3 y se catalogan para Athena.
 
-## 6. Contenedores y orquestación AWS
+## 6. Contenerización y orquestación AWS
 
-**Estado:** Aceptada
+**Estado:** Aceptada (ADR-013, ADR-016)
 
-**Decisión:** utilizar Docker, Amazon ECR y Amazon ECS como parte de la estrategia de despliegue de contenedores.
+**Decisión:** Usar Docker, Amazon ECR y Amazon ECS (Fargate) para las APIs orientadas al cliente; EC2 para los nodos batch y streaming.
 
-**Fundamento:** las imágenes estandarizan el empaquetado de aplicaciones y permiten despliegues versionados. ECR almacena las imágenes y ECS administra las cargas compatibles.
+**Razón:** Las imágenes de contenedores estandarizan el empaquetado y los despliegues versionados; Fargate elimina la administración de servidores para las APIs, mientras el orquestador con estado y los brokers se benefician del rendimiento predecible de instancias dedicadas.
 
-**Consecuencias:**
+**Consecuencias en la implementación:**
 
-- Las aplicaciones y los trabajos requieren imágenes y definiciones de tareas mantenidas.
-- La configuración de despliegue y los secretos deben gestionarse aparte de las imágenes.
-- Los servicios pertinentes necesitan health checks, logs, monitoreo y políticas de escalamiento.
+- Las imágenes se publican en 14 repositorios ECR, etiquetadas con `latest` + SHA del commit.
+- Las APIs corren en Fargate con IP pública detrás del security group del ALB; hay cinco task definitions registradas en el cluster `mercaandes-ecs-cluster`.
+- Hay una prueba de concepto EKS disponible para la Sellers API (`eks.tf`) antes de cualquier migración futura de plataforma.
 
-## 7. Red privada y privilegio mínimo
+## 7. Calidad de datos y manejo de eventos tardíos
 
-**Estado:** Aceptada
+**Estado:** Implementada (RN-10)
 
-**Decisión:** aislar los servicios internos de procesamiento y datos en segmentos privados y controlar el acceso con IAM y Security Groups.
+**Decisión:** Rechazar los eventos de marketplace mayores a 72 horas, incorporar los eventos tardíos al recálculo y registrar métricas de calidad por carga.
 
-**Fundamento:** el diseño de red busca reducir la exposición pública y restringir la comunicación a los servicios autorizados.
+**Razón:** Se generan eventos duplicados, fuera de orden y tardíos en la fuente (la Marketplace API inyecta duplicados y eventos fuera de orden a demanda), así que la plataforma garantiza pipelines idempotentes y calidad medible.
 
-**Consecuencias:**
+**Consecuencias en la implementación:**
 
-- Las cargas privadas necesitan rutas y conectividad adecuadas para sus dependencias externas.
-- Los Security Groups deben permitir únicamente las comunicaciones requeridas.
-- Cada rol IAM debe tener solo los permisos necesarios para su carga.
-- Se deben validar accesos administrativos y de aplicación sin exponer bases de datos ni mensajería a internet.
+- `public.data_quality_metrics` registra por carga los conteos de procesados, duplicados, tardíos incorporados, rechazos de más de 72 horas y el estado de calidad.
+- La vista Gold `gold.vw_data_quality_dashboard` expone las tasas por fuente.
+- La tabla `hot_inventory_risk` marca la reconciliación de los microlotes streaming frente a los resultados batch.
 
-## 8. Aislamiento de cargas de trabajo
+## 8. Resumen de decisiones
 
-**Estado:** Aceptada
+| Decisión                 | Beneficio obtenido                          |
+| ------------------------ | -------------------------------------------- |
+| Lambda + Medallón        | Rutas de procesamiento separadas y madurez de datos por capa. |
+| Lago de datos en S3      | Almacenamiento durable para datasets históricos y transformados. |
+| Kafka + RabbitMQ         | Streaming y mensajería operativa independientes. |
+| RDS + Athena             | Servicio relacional y analítica sobre el lago. |
+| Docker + ECR + ECS/Fargate | Empaquetado estandarizado y despliegue gestionado de APIs. |
+| Red privada + IAM        | Acceso controlado y menor exposición pública. |
+| Aislamiento de workloads | Batch y streaming en nodos dedicados sin contención. |
 
-**Decisión:** separar las cargas según sus responsabilidades de procesamiento y necesidades de recursos.
-
-**Fundamento:** el procesamiento histórico puede consumir mucha CPU y memoria, mientras que el streaming y la mensajería requieren disponibilidad sostenida y procesamiento predecible. Separar las cargas batch y de streaming ayuda a reducir la competencia por recursos.
-
-**Consecuencias:**
-
-- La capacidad de cómputo debe planificarse según cada tipo de carga.
-- Se deben validar recursos y políticas de escalamiento con cargas realistas.
-- La topología final debe especificar qué servicios se ejecutan en EC2, ECS o Fargate.
-
-## 9. Resumen de decisiones
-
-| Decisión | Beneficio |
-|---|---|
-| Lambda + Medallion | Separa rutas de procesamiento y organiza la madurez de los datos. |
-| Lago de datos en S3 | Conserva conjuntos históricos y transformados. |
-| Kafka + RabbitMQ | Separa el streaming de eventos de la mensajería operativa. |
-| RDS + Athena | Atiende consultas relacionales y analíticas del lago. |
-| Docker + ECR + ECS | Estandariza el empaquetado y el despliegue. |
-| Red privada + IAM | Controla el acceso y reduce la exposición pública. |
-| Aislamiento de cargas | Reduce la competencia entre responsabilidades de procesamiento. |
+Para la configuración del entorno y las instrucciones de ejecución, consulta la sección de [Instalación y despliegue](/docs/installation-deployment/prerequisites).

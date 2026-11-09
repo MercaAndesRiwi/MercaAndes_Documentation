@@ -2,52 +2,54 @@
 id: intro
 title: Introduction
 sidebar_position: 1
-description: Overview of the MercaAndes project, its scope, components, and technical documentation.
+description: MercaAndes Omnichannel project overview, business context, the problem it solves, and its objectives.
 ---
 
-# Welcome to MercaAndes
+# MercaAndes Omnichannel
 
-**MercaAndes** is a data project focused on integrating and processing sales information in a multinational omnichannel environment.
+**MercaAndes** is a data platform for sales, inventory, and marketplace analytics. The project integrates point-of-sale transactions, marketplace events, and seller inventories into a single source of information for commercial, logistics, and customer-service areas.
 
-The project aims to organize sales data from different sources and countries, providing a foundation for data processing and analysis.
+## Business context
 
-## Project Scope
+MercaAndes S.A.S. is a retail chain operating in five Andean countries: Colombia, Peru, Ecuador, Bolivia, and Chile. The operation includes 140 physical stores, its own marketplace, and third-party sellers who publish and sell products on the platform.
 
-MercaAndes covers sales data associated with the following countries:
+The digital channel has gained share of the business: over the last two years it grew from 12% to 38% of sales. This growth increased the volume and variety of information generated at the point-of-sale systems, the marketplace, and the external sellers' operations.
 
-- Colombia
-- Peru
-- Ecuador
-- Bolivia
-- Chile
-- Brazil, considered within the project's historical context.
+Each channel relies on different data sources and systems. Point-of-sale transactions are recorded in country-specific relational databases, the marketplace holds order information, and sellers report their inventories through an API. The platform integrates these sources to provide a consistent view of net sales, returns, and available inventory.
 
-The project focuses on organizing and processing sales data while accounting for the specific characteristics of each country's data.
+## Problem to solve
 
-## Main Components
+MercaAndes faces difficulties in obtaining timely visibility of sales behavior and real product availability:
 
-The project includes several components that support data management and processing:
+- Around 6% of sales is lost to stockouts that customers detect before the company does.
+- Different areas calculate different sales figures, so there is no single reference for total sales.
+- Promotions are activated on products without stock, causing cancellations and negative reviews.
+- Seller-reported inventories can be outdated, and seller performance lacks a uniform measurement.
+- Some stores hold excess inventory while others show shortages.
 
-- **Data Sources and Simulators:** provide source data and generate simulated commercial information.
-- **Databases:** organize sales information using country-specific schemas.
-- **Data Processing:** supports the preparation and transformation of data.
-- **Services and APIs:** provide interfaces for accessing and managing project data.
-- **Infrastructure and Orchestration:** support the execution and coordination of project components.
+Commercial reports are prepared manually, depend on a single person, and can take up to 48 hours. The core problem is not the absence of data but its dispersion across different systems and formats, and the lack of a tim construct that turns it into information useful for the business.
 
-The implementation details of each component are described in their respective sections.
+## Objectives
 
-## About This Documentation
+The MercaAndes data platform targets the following business objectives:
 
-This documentation centralizes the technical information required to understand, configure, and work with MercaAndes.
+1. Reduce undetected stockouts by 40% during the first three months of operation.
+2. Consolidate net sales, returns, and available inventory into a single source of information.
+3. Generate imminent-stockout alerts with at least 24 hours of anticipation.
+4. Measure and classify external seller performance using objective criteria.
+5. Provide a daily commercial dashboard, updated without manual intervention.
+6. Keep same-day information with a maximum delay of 15 minutes.
 
-It is intended for developers and technical team members involved in the setup, development, testing, and maintenance of the project.
+## What you will find in this documentation
 
-The documentation is organized into sections covering installation, architecture, databases, data processing, services, and development practices.
+This documentation presents the commercial context of MercaAndes, the needs that motivated the platform, and the objectives that guide its development. It describes the information sources that feed the solution and explains how the data flow is organized through the Lambda and Medallion architectures.
 
-## Getting Started
+It also covers the AWS infrastructure and its cost drivers, the IAM access controls, the transactional and analytical data model, and the services and APIs available for integration and testing. Finally, it documents the seven business questions that guide the Power BI dashboard and the glossary of project terms.
 
-If you are setting up the local development environment, start with **[Prerequisites](02-installation-deployment/01-prerequisites.md)**.
+Start with **[Data Sources](data-sources/data-sources)**, or go to **[Prerequisites](installation-deployment/prerequisites)** if you want to set up and run the local platform.
 
-This section will provide the requirements and instructions needed to configure the development environment and run the project.
+## About this documentation
 
-Once the environment is configured, continue with the **[Architecture Overview](03-architecture/01-overview.md)** to understand how the project's components are organized and interact.
+This documentation centralizes the information required to understand, configure, and work with MercaAndes. It is intended for developers and technical team members involved in setup, development, testing, and maintenance, as well as business users who want to understand the project.
+
+The site is written in English, with a Spanish translation available through the language selector in the navigation bar.

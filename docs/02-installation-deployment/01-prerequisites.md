@@ -1,14 +1,20 @@
-
+---
+id: prerequisites
+title: Prerequisites
+sidebar_position: 1
+description: Tools and resources required to run the MercaAndes local platform.
+---
 # Prerequisites
 
-The MercaAndes local environment uses Docker Compose for the platform services and `uv` for the data-processing Python environment.
+The MercaAndes local platform runs with Docker Compose from the `infrastructure_MercAndes` repository. Install and verify:
 
-Before starting, install and verify:
+- **Docker Desktop** or Docker Engine with Docker Compose v2, and WSL2 enabled on Windows.
+- **Git** to clone the repositories.
+- **Python 3.13 or newer** together with [`uv`](https://docs.astral.sh/uv/) if you want to run services, tests, or seeding scripts from the repositories without containers.
+- **PowerShell** for the smoke-test script and the documented Windows commands.
+- Network access so the containers can reach the Frankfurter and Nager.Date external APIs, and (optionally) AWS for S3 and RDS resources.
 
-- Python 3.13 or newer.
-- [`uv`](https://docs.astral.sh/uv/) for Python dependency and virtual-environment management.
-- Docker Desktop or Docker Engine with Docker Compose.
-- Network access for loading exchange rates and public holidays from external APIs.
-- PowerShell for the infrastructure smoke-test script and the documented Windows commands.
+## Resource requirements
 
-The first infrastructure startup downloads several large images. The infrastructure README estimates approximately 5 GB, including the Airflow image.
+- At least 8 GB of RAM; 16 GB are recommended when running all containers simultaneously.
+- About 5 GB of disk for the first image pull, more when including Spark and Airflow builds.
